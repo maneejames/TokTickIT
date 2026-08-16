@@ -40,7 +40,7 @@ export async function checkSystem(): Promise<SystemStatus> {
     healthRes = await fetch(`${API_URL}/api/health`);
   } catch {
     throw new Error(
-      `Cannot connect to backend server at ${API_URL}. Please check if the server is running (npm run dev inside server/).`
+      "Unable to connect to TokTickIT API"
     );
   }
 
@@ -48,16 +48,18 @@ export async function checkSystem(): Promise<SystemStatus> {
     throw new Error(`Health check failed: Server returned HTTP ${healthRes.status} (${healthRes.statusText || "Error"})`);
   }
 
-  // Issue 4 will fetch categories. If categories endpoint is not yet ready, handle gracefully or fetch
-  let categories: Category[] = [];
+  let catRes: Response;
   try {
-    const catRes = await fetch(`${API_URL}/api/categories`);
-    if (catRes.ok) {
-      categories = await catRes.json();
-    }
+    catRes = await fetch(`${API_URL}/api/categories`);
   } catch {
-    // Categories not implemented yet (Issue 4), health check passed
+    throw new Error("Unable to connect to TokTickIT API");
   }
+
+  if (!catRes.ok) {
+    throw new Error(`Categories fetch failed: Server returned HTTP ${catRes.status} (${catRes.statusText || "Error"})`);
+  }
+
+  const categories: Category[] = await catRes.json();
 
   return {
     online: true,

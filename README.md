@@ -250,9 +250,47 @@ npm test
    - Backend: `cd server && npm run dev`
    - Frontend: `cd client && npm run dev`
 3. Open `http://localhost:5173`.
-4. Click **"Check System"**:
-   - **Online Scenario**: Status banner turns green (**"System Status: Online"**) and lists the 4 categories (**Account and Access**, **Hardware**, **Software**, **Network**).
-   - **Offline Scenario**: Stop the backend terminal (`Ctrl + C`) and click **"Check System"** again. The alert turns red (**"System Status: Offline"**) displaying a connection error message.
+
+#### UI State Demonstrations & Behavior:
+
+**1. Initial State (Idle):**
+```text
+┌──────────────────────────────────────────────┐
+│ TokTickIT IT Service Desk                    │
+│                                              │
+│ [ Check System ]                             │
+└──────────────────────────────────────────────┘
+```
+
+**2. Success Case after clicking [Check System] (API & Database Online):**
+```text
+┌──────────────────────────────────────────────┐
+│ TokTickIT IT Service Desk                    │
+│                                              │
+│ [ Check System ]                             │
+│                                              │
+│ System Status: Online                        │
+│ TokTickIT API is operational and healthy.    │
+│                                              │
+│ Supported Request Categories                 │
+│ 1. Account and Access                        │
+│ 2. Hardware                                  │
+│ 3. Software                                  │
+│ 4. Network                                   │
+└──────────────────────────────────────────────┘
+```
+
+**3. Failure Case after clicking [Check System] (e.g., when DB server or API is not started):**
+```text
+┌──────────────────────────────────────────────┐
+│ TokTickIT IT Service Desk                    │
+│                                              │
+│ [ Check System ]                             │
+│                                              │
+│ System Status: Offline                       │
+│ Unable to connect to TokTickIT API           │
+└──────────────────────────────────────────────┘
+```
 
 ---
 
