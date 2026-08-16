@@ -121,21 +121,49 @@ npm run dev
 
 ---
 
-## 🧪 Running Tests
+---
 
-Both the frontend and backend include automated test suites powered by **Vitest** and **Supertest**.
+## 📡 API Endpoints
 
-### Run Backend Tests (API & Supertest)
+### Health Check
+- **Endpoint**: `GET /api/health`
+- **Description**: Verifies that the TokTickIT backend API service is running.
+- **Success Response**: `200 OK`
+  ```json
+  {
+    "status": "ok",
+    "service": "TokTickIT API"
+  }
+  ```
+
+---
+
+## 🧪 Running Tests & Verification
+
+Both frontend and backend include automated tests powered by **Vitest**, **Supertest**, and **React Testing Library**.
+
+### 1. Run Backend Tests (Supertest)
+Verify API endpoints including `GET /api/health`:
 ```bash
 cd server
 npm test
 ```
 
-### Run Frontend Tests (Component & Vitest)
+### 2. Run Frontend Tests (React Testing Library)
+Verify UI rendering, online state, and offline error handling:
 ```bash
 cd client
 npm test
 ```
+
+### 3. Manual Testing in Browser
+1. Start both servers:
+   - Backend: `cd server && npm run dev`
+   - Frontend: `cd client && npm run dev`
+2. Open `http://localhost:5173`.
+3. Click the **"Check System"** button.
+   - When the backend is running, the alert turns green with **"System Status: Online"** (`TokTickIT API is operational and healthy`).
+   - If the backend is stopped, the alert turns red with **"System Status: Offline"** and displays a helpful error message.
 
 ---
 
@@ -147,10 +175,10 @@ npm test
 - `npm start`: Runs the compiled production server.
 - `npm run prisma:migrate`: Runs Prisma migrations against the database.
 - `npm run prisma:seed`: Seeds the database with default category records.
-- `npm test`: Runs backend test suites with Vitest.
+- `npm test`: Runs backend test suites with Vitest and Supertest.
 
 ### Client (`client/`)
 - `npm run dev`: Starts the Vite development server.
 - `npm run build`: Type-checks and builds the frontend bundle for production.
 - `npm run preview`: Previews the production build locally.
-- `npm test`: Runs client test suites with Vitest and React Testing Library.
+- `npm test`: Runs client test suites with Vitest and React Testing Library.
