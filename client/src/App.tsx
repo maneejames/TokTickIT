@@ -54,16 +54,19 @@ export default function App() {
 
       {state === "success" && (
         <div className="alert alert-success" role="alert">
-          <h5 className="alert-heading mb-1">System Status: Online</h5>
-          <p className="mb-0">
+          <h5 className="alert-heading mb-2">System Status: Online</h5>
+          <p className="mb-3">
             TokTickIT API is operational and healthy.
           </p>
           {categories.length > 0 && (
-            <ul className="mt-3 mb-0">
-              {categories.map((cat) => (
-                <li key={cat.id}>{cat.name}</li>
-              ))}
-            </ul>
+            <div>
+              <div className="fw-semibold mb-2">Supported Request Categories</div>
+              <ol className="mb-0 ps-3">
+                {categories.map((cat) => (
+                  <li key={cat.id}>{cat.name}</li>
+                ))}
+              </ol>
+            </div>
           )}
         </div>
       )}
@@ -72,7 +75,7 @@ export default function App() {
         <div className="alert alert-danger" role="alert">
           <h5 className="alert-heading mb-1">System Status: Offline</h5>
           <p className="mb-0">
-            {errorMessage || "Backend service is unavailable. Please verify that the API server is running on port 3000."}
+            {errorMessage || "Unable to connect to TokTickIT API"}
           </p>
         </div>
       )}
