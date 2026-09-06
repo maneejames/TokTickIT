@@ -13,6 +13,7 @@ import {
 interface CreateTicketProps {
   currentRequester: RequesterUser;
   onNavigateToMyTickets?: () => void;
+  onNavigateToTicketDetail?: (ticketId: number) => void;
 }
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -22,6 +23,7 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 export const CreateTicket: React.FC<CreateTicketProps> = ({
   currentRequester,
   onNavigateToMyTickets,
+  onNavigateToTicketDetail,
 }) => {
   // Reference data state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -293,6 +295,12 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
               href={`/tickets/${ticket.id}`}
               className="zen-btn-primary text-center text-decoration-none"
               style={{ padding: "10px 20px" }}
+              onClick={(e) => {
+                if (onNavigateToTicketDetail) {
+                  e.preventDefault();
+                  onNavigateToTicketDetail(ticket.id);
+                }
+              }}
             >
               View Ticket Details
             </a>

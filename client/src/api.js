@@ -189,3 +189,65 @@ export async function getTickets(params = {}, requesterId) {
     }
     return res.json();
 }
+export async function getTicketDetail(ticketId, requesterId) {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
+            headers: {
+                "X-Requester-Id": String(requesterId),
+            },
+        });
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        let errorMsg = `Failed to fetch ticket details (HTTP ${res.status})`;
+        try {
+            const errorData = await res.json();
+            if (errorData?.error?.message) {
+                errorMsg = errorData.error.message;
+            }
+        }
+        catch {
+            // fallback
+        }
+        const err = new Error(errorMsg);
+        err.status = res.status;
+        throw err;
+    }
+    return res.json();
+}
+export async function removeAttachment(ticketId, attachmentId, requesterId, removedReason) {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/remove`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requester-Id": String(requesterId),
+            },
+            body: JSON.stringify(removedReason ? { removedReason } : {}),
+        });
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        let errorMsg = `Failed to remove attachment (HTTP ${res.status})`;
+        try {
+            const errorData = await res.json();
+            if (errorData?.error?.message) {
+                errorMsg = errorData.error.message;
+            }
+        }
+        catch {
+            // fallback
+        }
+        throw new Error(errorMsg);
+    }
+    return res.json();
+}
+export function getAttachmentDownloadUrl(ticketId, attachmentId, requesterId) {
+    return `${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+}

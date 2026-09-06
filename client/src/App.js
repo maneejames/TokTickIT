@@ -4,12 +4,29 @@ import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { AppShell } from "./components/AppShell.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
+import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 function MainContent() {
     const { currentRequester } = useRequester();
     const [activeNav, setActiveNav] = useState("my-tickets");
-    return (_jsx(AppShell, { activeNav: activeNav, onNavSelect: setActiveNav, children: currentRequester && (activeNav === "create-ticket" ? (_jsx(CreateTicket, { currentRequester: currentRequester, onNavigateToMyTickets: () => setActiveNav("my-tickets") })) : (_jsx(MyTickets, { currentRequester: currentRequester, onNavigateToCreateTicket: () => setActiveNav("create-ticket"), onNavigateToTicketDetail: (ticketId) => {
-                window.location.href = `/tickets/${ticketId}`;
-            } }))) }));
+    const [selectedTicketId, setSelectedTicketId] = useState(() => {
+        // Check if initial URL matches /tickets/:id
+        const match = window.location.pathname.match(/^\/tickets\/(\d+)$/);
+        return match ? Number(match[1]) : null;
+    });
+    const handleNavigateToTicketDetail = (ticketId) => {
+        setSelectedTicketId(ticketId);
+        window.history.pushState(null, "", `/tickets/${ticketId}`);
+    };
+    const handleBackToMyTickets = () => {
+        setSelectedTicketId(null);
+        setActiveNav("my-tickets");
+        window.history.pushState(null, "", "/tickets");
+    };
+    const handleNavSelect = (nav) => {
+        setSelectedTicketId(null);
+        setActiveNav(nav);
+    };
+    return (_jsx(AppShell, { activeNav: activeNav, onNavSelect: handleNavSelect, children: currentRequester && (selectedTicketId !== null ? (_jsx(RequesterTicketDetail, { ticketId: selectedTicketId, currentRequester: currentRequester, onNavigateToMyTickets: handleBackToMyTickets })) : activeNav === "create-ticket" ? (_jsx(CreateTicket, { currentRequester: currentRequester, onNavigateToMyTickets: () => setActiveNav("my-tickets"), onNavigateToTicketDetail: handleNavigateToTicketDetail })) : (_jsx(MyTickets, { currentRequester: currentRequester, onNavigateToCreateTicket: () => setActiveNav("create-ticket"), onNavigateToTicketDetail: handleNavigateToTicketDetail }))) }));
 }
 export default function App() {
     return (_jsx(RequesterProvider, { children: _jsx(MainContent, {}) }));

@@ -671,6 +671,385 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lab 2 Issue 6 — Requester Ticket Detail & Attachments
+// ---------------------------------------------------------------------------
+
+// GET /api/tickets/:id: Single ticket detail
+app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    return res.status(404).json({
+      error: {
+        code: "NOT_FOUND",
+        message: "Ticket not found",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        requesterId: true,
+        categoryId: true,
+        relatedSystemId: true,
+        summary: true,
+        description: true,
+        requestedPriority: true,
+        currentStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        relatedSystem: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        attachments: {
+          orderBy: {
+            uploadedAt: "asc",
+          },
+          select: {
+            id: true,
+            ticketId: true,
+            originalFilename: true,
+            mimeType: true,
+            sizeBytes: true,
+            isRemoved: true,
+            removedAt: true,
+            removedReason: true,
+            uploadedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!ticket || ticket.requesterId !== req.requester!.id) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    return res.status(200).json(ticket);
+  } catch (err: unknown) {
+    console.error("GET /api/tickets/:id error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to fetch ticket detail",
+      },
+    });
+  }
+});
+
+// GET /api/tickets/:id/attachments/:attachmentId: Attachment metadata
+app.get(
+  "/api/tickets/:id/attachments/:attachmentId",
+  requireRequester,
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+    const attachmentId = Number(req.params.attachmentId);
+
+    if (
+      !Number.isInteger(ticketId) ||
+      ticketId <= 0 ||
+      !Number.isInteger(attachmentId) ||
+      attachmentId <= 0
+    ) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Attachment not found",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket || ticket.requesterId !== req.requester!.id) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      const attachment = await prisma.attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+        },
+        select: {
+          id: true,
+          ticketId: true,
+          originalFilename: true,
+          mimeType: true,
+          sizeBytes: true,
+          isRemoved: true,
+          removedAt: true,
+          removedReason: true,
+          uploadedAt: true,
+        },
+      });
+
+      if (!attachment) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      return res.status(200).json(attachment);
+    } catch (err: unknown) {
+      console.error("GET attachment metadata error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to fetch attachment metadata",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/tickets/:id/attachments/:attachmentId/download: Stream active attachment
+app.get(
+  "/api/tickets/:id/attachments/:attachmentId/download",
+  requireRequester,
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+    const attachmentId = Number(req.params.attachmentId);
+
+    if (
+      !Number.isInteger(ticketId) ||
+      ticketId <= 0 ||
+      !Number.isInteger(attachmentId) ||
+      attachmentId <= 0
+    ) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Attachment not found",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket || ticket.requesterId !== req.requester!.id) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      const attachment = await prisma.attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+        },
+      });
+
+      if (!attachment) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      // Check soft-removed: per locked contract, return 410 Gone (NOT 404)
+      if (attachment.isRemoved) {
+        return res.status(410).json({
+          error: {
+            code: "GONE",
+            message: "This attachment has been removed and cannot be downloaded",
+          },
+        });
+      }
+
+      const uploadDir = path.resolve(process.cwd(), "uploads", "attachments");
+      const filePath = path.join(uploadDir, attachment.storedFilename);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "File not found on server",
+          },
+        });
+      }
+
+      res.setHeader("Content-Type", attachment.mimeType);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${attachment.originalFilename}"`
+      );
+      res.setHeader("Content-Length", attachment.sizeBytes);
+
+      const stream = fs.createReadStream(filePath);
+      stream.on("error", (_streamErr) => {
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: {
+              code: "INTERNAL_ERROR",
+              message: "Failed to stream attachment file",
+            },
+          });
+        }
+      });
+      stream.pipe(res);
+    } catch (err: unknown) {
+      console.error("Download attachment error:", err);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Failed to download attachment",
+          },
+        });
+      }
+    }
+  }
+);
+
+// PATCH /api/tickets/:id/attachments/:attachmentId/remove: Soft-remove attachment
+app.patch(
+  "/api/tickets/:id/attachments/:attachmentId/remove",
+  requireRequester,
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+    const attachmentId = Number(req.params.attachmentId);
+
+    if (
+      !Number.isInteger(ticketId) ||
+      ticketId <= 0 ||
+      !Number.isInteger(attachmentId) ||
+      attachmentId <= 0
+    ) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Attachment not found",
+        },
+      });
+    }
+
+    const { removedReason } = req.body ?? {};
+    if (removedReason !== undefined && removedReason !== null) {
+      if (typeof removedReason !== "string" || removedReason.length > 200) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "removedReason must not exceed 200 characters",
+          },
+        });
+      }
+    }
+
+    try {
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket || ticket.requesterId !== req.requester!.id) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      const attachment = await prisma.attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+        },
+      });
+
+      if (!attachment) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found",
+          },
+        });
+      }
+
+      if (attachment.isRemoved) {
+        return res.status(400).json({
+          error: {
+            code: "ALREADY_REMOVED",
+            message: "Attachment is already removed",
+          },
+        });
+      }
+
+      const updated = await prisma.attachment.update({
+        where: { id: attachmentId },
+        data: {
+          isRemoved: true,
+          removedAt: new Date(),
+          removedReason: removedReason ? removedReason.trim() : null,
+        },
+        select: {
+          id: true,
+          isRemoved: true,
+          removedAt: true,
+          removedReason: true,
+        },
+      });
+
+      return res.status(200).json(updated);
+    } catch (err: unknown) {
+      console.error("Remove attachment error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to remove attachment",
+        },
+      });
+    }
+  }
+);
+
 /**
  * Build a parameterised WHERE clause string for raw SQL queries.
  * Returns { sql: string, params: unknown[] } where sql begins with "WHERE" or is empty.
