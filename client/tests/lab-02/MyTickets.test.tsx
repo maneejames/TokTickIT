@@ -146,7 +146,9 @@ describe("MyTickets Component UI Tests", () => {
       });
 
       const searchInput = screen.getByPlaceholderText(/Search by summary or ticket #\.\.\./i);
-      fireEvent.change(searchInput, { target: { value: "NonExistentTicket999" } });
+      await waitFor(() => {
+        fireEvent.change(searchInput, { target: { value: "NonExistentTicket999" } });
+      });
 
       await waitFor(() => {
         expect(screen.getByText(/No tickets match your search criteria\./i)).toBeInTheDocument();
@@ -157,7 +159,9 @@ describe("MyTickets Component UI Tests", () => {
       expect(clearBtn).toBeInTheDocument();
 
       // Clicking Clear Filters resets the search
-      fireEvent.click(clearBtn);
+      await waitFor(() => {
+        fireEvent.click(clearBtn);
+      });
       expect(searchInput).toHaveValue("");
     });
   });
