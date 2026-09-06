@@ -1,0 +1,92 @@
+:root {
+  --color-primary-green: #006B3C;
+  --color-secondary-green: #0B7A46;
+  --color-pale-green: #EAF6EF;
+  --color-page-bg: #F5F7F6;
+  --color-surface: #FFFFFF;
+  --color-border: #D1DDD5;
+  --color-text-main: #1A2E22;
+  --color-text-muted: #5A6B60;
+  --color-field-readonly: #EFF3F0;
+  --color-error: #B3261E;
+  --color-error-bg: #FDF2F2;
+  --color-warning: #B58105;
+  --color-warning-bg: #FEF8E8;
+
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-page-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.zen-btn-primary {
+  background-color: var(--color-primary-green);
+  color: #FFFFFF;
+  border: 1px solid var(--color-primary-green);
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.zen-btn-primary:hover:not(:disabled) {
+  background-color: var(--color-secondary-green);
+  border-color: var(--color-secondary-green);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #FFFFFF;
+}
+
+.zen-btn-primary:disabled {
+  background-color: #E0E0E0;
+  color: #888888;
+  border-color: #E0E0E0;
+  cursor: not-allowed;
+}
+
+.zen-btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--color-primary-green);
+  border: 1.5px solid var(--color-primary-green);
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.zen-btn-secondary:hover {
+  background-color: var(--color-pale-green);
+  color: var(--color-secondary-green);
+}
+
+.zen-select, .zen-input {
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--color-text-main);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.zen-select:focus, .zen-input:focus, .zen-btn-primary:focus, .zen-btn-secondary:focus {
+  outline: none;
+  border-color: var(--color-secondary-green);
+  box-shadow: 0 0 0 3px rgba(11, 122, 70, 0.2);
+}
+
+.zen-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}

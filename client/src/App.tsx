@@ -1,85 +1,67 @@
-import { useState } from "react";
-import { checkSystem, Category } from "./api.js";
+import React, { useState } from "react";
+import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { AppShell } from "./components/AppShell.js";
+import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
 
-// UI states: idle, loading, success, error.
-type UiState = "idle" | "loading" | "success" | "error";
+import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 
-export default function App() {
-  const [state, setState] = useState<UiState>("idle");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+function MainContent() {
+  const { currentRequester } = useRequester();
+  const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket">("my-tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(() => {
+    // Check if initial URL matches /tickets/:id
+    const match = window.location.pathname.match(/^\/tickets\/(\d+)$/);
+    return match ? Number(match[1]) : null;
+  });
 
-  async function handleCheck() {
-    setState("loading");
-    setErrorMessage("");
-    try {
-      const result = await checkSystem();
-      setCategories(result.categories);
-      setState("success");
-    } catch (err: unknown) {
-      let message = "Unable to connect to TokTickIT API. Please ensure the backend server is running.";
-      if (err instanceof Error) {
-        message =
-          err.message === "Failed to fetch"
-            ? "Cannot reach the backend service. Please ensure the API server is running on http://localhost:3000."
-            : err.message;
-      }
-      setErrorMessage(message);
-      setState("error");
-    }
-  }
+  const handleNavigateToTicketDetail = (ticketId: number) => {
+    setSelectedTicketId(ticketId);
+    window.history.pushState(null, "", `/tickets/${ticketId}`);
+  };
+
+  const handleBackToMyTickets = () => {
+    setSelectedTicketId(null);
+    setActiveNav("my-tickets");
+    window.history.pushState(null, "", "/tickets");
+  };
+
+  const handleNavSelect = (nav: "my-tickets" | "create-ticket") => {
+    setSelectedTicketId(null);
+    setActiveNav(nav);
+  };
 
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
-      </h1>
-
-      <div className="mb-4">
-        <button
-          className="btn btn-success"
-          onClick={handleCheck}
-          disabled={state === "loading"}
-        >
-          {state === "loading" ? "Checking…" : "Check System"}
-        </button>
-      </div>
-
-      {state === "loading" && (
-        <div className="alert alert-info d-flex align-items-center" role="status">
-          <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-          <span>Checking backend system status...</span>
-        </div>
+    <AppShell activeNav={activeNav} onNavSelect={handleNavSelect}>
+      {currentRequester && (
+        selectedTicketId !== null ? (
+          <RequesterTicketDetail
+            ticketId={selectedTicketId}
+            currentRequester={currentRequester}
+            onNavigateToMyTickets={handleBackToMyTickets}
+          />
+        ) : activeNav === "create-ticket" ? (
+          <CreateTicket
+            currentRequester={currentRequester}
+            onNavigateToMyTickets={() => setActiveNav("my-tickets")}
+            onNavigateToTicketDetail={handleNavigateToTicketDetail}
+          />
+        ) : (
+          <MyTickets
+            currentRequester={currentRequester}
+            onNavigateToCreateTicket={() => setActiveNav("create-ticket")}
+            onNavigateToTicketDetail={handleNavigateToTicketDetail}
+          />
+        )
       )}
-
-      {state === "success" && (
-        <div className="alert alert-success" role="alert">
-          <h5 className="alert-heading mb-2">System Status: Online</h5>
-          <p className="mb-3">
-            TokTickIT API is operational and healthy.
-          </p>
-          {categories.length > 0 && (
-            <div>
-              <div className="fw-semibold mb-2">Supported Request Categories</div>
-              <ol className="mb-0 ps-3">
-                {categories.map((cat) => (
-                  <li key={cat.id}>{cat.name}</li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
-
-      {state === "error" && (
-        <div className="alert alert-danger" role="alert">
-          <h5 className="alert-heading mb-1">System Status: Offline</h5>
-          <p className="mb-0">
-            {errorMessage || "Unable to connect to TokTickIT API"}
-          </p>
-        </div>
-      )}
-    </div>
+    </AppShell>
   );
 }
 
+export default function App() {
+  return (
+    <RequesterProvider>
+      <MainContent />
+    </RequesterProvider>
+  );
+}

@@ -1,29 +1,33 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx } from "react/jsx-runtime";
 import { useState } from "react";
-import { checkSystem } from "./api.js";
+import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { AppShell } from "./components/AppShell.js";
+import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
+import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
+function MainContent() {
+    const { currentRequester } = useRequester();
+    const [activeNav, setActiveNav] = useState("my-tickets");
+    const [selectedTicketId, setSelectedTicketId] = useState(() => {
+        // Check if initial URL matches /tickets/:id
+        const match = window.location.pathname.match(/^\/tickets\/(\d+)$/);
+        return match ? Number(match[1]) : null;
+    });
+    const handleNavigateToTicketDetail = (ticketId) => {
+        setSelectedTicketId(ticketId);
+        window.history.pushState(null, "", `/tickets/${ticketId}`);
+    };
+    const handleBackToMyTickets = () => {
+        setSelectedTicketId(null);
+        setActiveNav("my-tickets");
+        window.history.pushState(null, "", "/tickets");
+    };
+    const handleNavSelect = (nav) => {
+        setSelectedTicketId(null);
+        setActiveNav(nav);
+    };
+    return (_jsx(AppShell, { activeNav: activeNav, onNavSelect: handleNavSelect, children: currentRequester && (selectedTicketId !== null ? (_jsx(RequesterTicketDetail, { ticketId: selectedTicketId, currentRequester: currentRequester, onNavigateToMyTickets: handleBackToMyTickets })) : activeNav === "create-ticket" ? (_jsx(CreateTicket, { currentRequester: currentRequester, onNavigateToMyTickets: () => setActiveNav("my-tickets"), onNavigateToTicketDetail: handleNavigateToTicketDetail })) : (_jsx(MyTickets, { currentRequester: currentRequester, onNavigateToCreateTicket: () => setActiveNav("create-ticket"), onNavigateToTicketDetail: handleNavigateToTicketDetail }))) }));
+}
 export default function App() {
-    const [state, setState] = useState("idle");
-    const [categories, setCategories] = useState([]);
-    const [errorMessage, setErrorMessage] = useState("");
-    async function handleCheck() {
-        setState("loading");
-        setErrorMessage("");
-        try {
-            const result = await checkSystem();
-            setCategories(result.categories);
-            setState("success");
-        }
-        catch (err) {
-            let message = "Unable to connect to TokTickIT API. Please ensure the backend server is running.";
-            if (err instanceof Error) {
-                message =
-                    err.message === "Failed to fetch"
-                        ? "Cannot reach the backend service. Please ensure the API server is running on http://localhost:3000."
-                        : err.message;
-            }
-            setErrorMessage(message);
-            setState("error");
-        }
-    }
-    return (_jsxs("div", { className: "container py-5", style: { maxWidth: 640 }, children: [_jsxs("h1", { className: "h3 mb-4", children: ["TokTickIT ", _jsx("span", { className: "text-success", children: "IT Service Desk" })] }), _jsx("div", { className: "mb-4", children: _jsx("button", { className: "btn btn-success", onClick: handleCheck, disabled: state === "loading", children: state === "loading" ? "Checking…" : "Check System" }) }), state === "loading" && (_jsxs("div", { className: "alert alert-info d-flex align-items-center", role: "status", children: [_jsx("span", { className: "spinner-border spinner-border-sm me-2", "aria-hidden": "true" }), _jsx("span", { children: "Checking backend system status..." })] })), state === "success" && (_jsxs("div", { className: "alert alert-success", role: "alert", children: [_jsx("h5", { className: "alert-heading mb-2", children: "System Status: Online" }), _jsx("p", { className: "mb-3", children: "TokTickIT API is operational and healthy." }), categories.length > 0 && (_jsxs("div", { children: [_jsx("div", { className: "fw-semibold mb-2", children: "Supported Request Categories" }), _jsx("ol", { className: "mb-0 ps-3", children: categories.map((cat) => (_jsx("li", { children: cat.name }, cat.id))) })] }))] })), state === "error" && (_jsxs("div", { className: "alert alert-danger", role: "alert", children: [_jsx("h5", { className: "alert-heading mb-1", children: "System Status: Offline" }), _jsx("p", { className: "mb-0", children: errorMessage || "Unable to connect to TokTickIT API" })] }))] }));
+    return (_jsx(RequesterProvider, { children: _jsx(MainContent, {}) }));
 }

@@ -10,18 +10,95 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
-// Define a Category model with:
-//   id        Int      @id @default(autoincrement())
-//   name      String   @unique
-//   createdAt DateTime @default(now())
-// Then run:  npx prisma migrate dev --name init
-// ---------------------------------------------------------------------------
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketStatus {
+  NEW
+}
+
+model RequesterUser {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  department String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  tickets    Ticket[]
+
+  @@map("requester_users")
+}
 
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  tickets   Ticket[]
+
+  @@map("categories")
 }
 
+model RelatedSystem {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  tickets     Ticket[]
+
+  @@map("related_systems")
+}
+
+model Ticket {
+  id                Int          @id @default(autoincrement())
+  ticketNumber      String       @unique
+  requesterId       Int
+  categoryId        Int
+  relatedSystemId   Int
+  summary           String       @db.VarChar(100)
+  description       String       @db.VarChar(2000)
+  requestedPriority Priority     @default(MEDIUM)
+  currentStatus     TicketStatus @default(NEW)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  requester     RequesterUser @relation(fields: [requesterId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
+  relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  attachments   Attachment[]
+
+  @@index([requesterId, createdAt(sort: Desc)])
+  @@index([currentStatus])
+  @@map("tickets")
+}
+
+model Attachment {
+  id               Int       @id @default(autoincrement())
+  ticketId         Int
+  storedFilename   String    @unique
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  isRemoved        Boolean   @default(false)
+  removedAt        DateTime?
+  removedReason    String?   @db.VarChar(200)
+  uploadedAt       DateTime  @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, isRemoved])
+  @@map("attachments")
+}
+
+model TicketSequence {
+  id         Int      @id @default(autoincrement())
+  date       String   @unique @db.VarChar(8)
+  lastNumber Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@map("ticket_sequences")
+}
