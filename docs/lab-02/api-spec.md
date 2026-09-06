@@ -13,7 +13,8 @@ Because authentication is implemented in Lab 3, Lab 2 simulates multi-user reque
   ```http
   X-Requester-Id: <number>
   ```
-- If `X-Requester-Id` is missing, malformed, or references an inactive/non-existent user, the server rejects the request with `401 Unauthorized` or `403 Forbidden`.
+- **Download Endpoint Exception**: For `GET /api/tickets/:id/attachments/:attachmentId/download` ONLY, clients may alternatively provide the requester ID via query parameter (`?requesterId=<number>`) to support plain browser anchor `<a href>` downloads without custom headers. Both `X-Requester-Id` header and `?requesterId=` query param are accepted.
+- If requester identity is missing, malformed, or references an inactive/non-existent user, the server rejects the request with `401 Unauthorized` (missing) or `403 Forbidden` (inactive).
 
 ### Standard Error Response Format
 All error responses return a standardized JSON envelope:
@@ -66,17 +67,17 @@ Returns all active Development Requesters for the selection screen. Inactive req
 ---
 
 #### `GET /api/categories`
-Returns all active IT ticket categories.
+Returns all active IT ticket categories (WHERE `isActive = true`).
 
 - **Headers**: None required
 - **Query Parameters**: None
 - **Response `200 OK`**:
 ```json
 [
-  { "id": 1, "name": "Account and Access" },
-  { "id": 2, "name": "Hardware" },
-  { "id": 3, "name": "Software" },
-  { "id": 4, "name": "Network" }
+  { "id": 1, "name": "Account and Access", "isActive": true },
+  { "id": 2, "name": "Hardware", "isActive": true },
+  { "id": 3, "name": "Software", "isActive": true },
+  { "id": 4, "name": "Network", "isActive": true }
 ]
 ```
 
@@ -105,7 +106,7 @@ Returns all active Related Systems.
 ### 2.2 Ticket Endpoints
 
 #### `POST /api/tickets`
-Creates a new IT support ticket for the active requester.
+Creates a new IT support ticket for the active requester with JSON payload. Attachments are uploaded in a separate second step via sequential calls to `POST /api/tickets/:id/attachments`.
 
 - **Headers**:
   - `Content-Type: application/json`
@@ -160,13 +161,15 @@ Retrieves a paginated list of tickets owned by the requester specified in `X-Req
 - **Query Parameters**:
   | Parameter | Type | Default | Description |
   |---|---|---|---|
-  | `search` | string | `""` | Filter by case-insensitive substring in `summary` or exact `ticketNumber` |
+  | `search` | string | `""` | Filter by case-insensitive substring in `summary` OR `ticketNumber` (`ILIKE '%search%'`) |
   | `categoryId` | number | none | Filter by Category ID |
   | `status` | string | none | Filter by ticket status (e.g. `NEW`) |
-  | `sortBy` | string | `"createdAt"` | Field to sort by: `"createdAt"`, `"requestedPriority"`, `"summary"` |
+  | `sortBy` | string | `"createdAt"` | Field to sort by: `"createdAt"`, `"requestedPriority"`, `"status"`, `"summary"` |
   | `sortOrder` | string | `"desc"` | Sort direction: `"asc"` or `"desc"` |
   | `page` | number | `1` | Page number (1-based index) |
   | `pageSize` | number | `10` | Items per page (allowed: 5, 10, 20, 50) |
+
+- **Note on Counts**: The `_count.attachments` property reflects the count of **ACTIVE** (non-removed, `isRemoved = false`) attachments only.
 
 - **Response `200 OK`**:
 ```json
@@ -205,7 +208,7 @@ Retrieves full details for a single ticket, including its active and soft-remove
   - `id`: Ticket primary key (integer)
 - **Ownership Check**:
   - The server verifies `ticket.requesterId === Number(req.headers['x-requester-id'])`.
-  - If the ticket belongs to a different requester, the server returns `404 Not Found` (or `403 Forbidden`) to prevent enumeration.
+  - If the ticket belongs to a different requester (or does not exist), the server returns `404 Not Found` to prevent user enumeration.
 - **Response `200 OK`**:
 ```json
 {
@@ -266,7 +269,7 @@ Uploads a single attachment to an existing ticket.
 - **Body**:
   - `file`: Binary file upload
 - **Enforced Constraints**:
-  - Ticket ownership verified (`requesterId === header`).
+  - Ticket ownership verified (`requesterId === header`). If ticket belongs to another requester, returns `404 Not Found`.
   - Active attachment count check: `COUNT(attachments where ticketId = :id and isRemoved = false) < 5`. If 5, returns `400 Bad Request` ("Maximum of 5 active attachments reached").
   - File size: max 5 MB (5,242,880 bytes). If exceeded, returns `413 Payload Too Large`.
   - MIME type: must be `image/jpeg`, `image/png`, `image/webp`, or `application/pdf`. If not, returns `415 Unsupported Media Type`.
@@ -288,12 +291,13 @@ Uploads a single attachment to an existing ticket.
 #### `GET /api/tickets/:id/attachments/:attachmentId/download`
 Downloads an active attachment file.
 
-- **Headers**:
-  - `X-Requester-Id: 1`
+- **Headers / Query Parameters**:
+  - Accepted in header: `X-Requester-Id: 1`
+  - OR accepted in query parameter: `?requesterId=1` (supports plain HTML `<a href="...">` downloads)
 - **Security Checks**:
-  1. Ticket must exist and belong to `X-Requester-Id`.
-  2. Attachment must belong to Ticket.
-  3. `isRemoved` must be `false`. If `true`, returns `404 Not Found` or `410 Gone` with message: `"This attachment has been removed and cannot be downloaded"`.
+  1. Ticket must exist and belong to the requester (`X-Requester-Id` header or `?requesterId` query param). If not, returns `404 Not Found`.
+  2. Attachment must belong to Ticket. If not, returns `404 Not Found`.
+  3. `isRemoved` must be `false`. If `true`, returns `410 Gone` with message: `"This attachment has been removed and cannot be downloaded"`.
 - **Response `200 OK`**:
   - Headers:
     - `Content-Type: image/png` (matches attachment mime type)
@@ -312,16 +316,16 @@ Soft-removes an attachment with an optional reason.
 - **Request Body**:
 ```json
 {
-  "reason": "Duplicate screenshot uploaded by mistake"
+  "removedReason": "Duplicate screenshot uploaded by mistake"
 }
 ```
 - **Validation Rules**:
-  - `reason`: Optional string, max length 200 characters.
-  - Attachment must belong to ticket, ticket must belong to `X-Requester-Id`.
+  - `removedReason`: Optional string, max length 200 characters.
+  - Attachment must belong to ticket, ticket must belong to `X-Requester-Id`. If not, returns `404 Not Found`.
   - If already removed, returns `400 Bad Request` ("Attachment is already removed").
 - **Backend Operation**:
-  - Updates DB record: `isRemoved: true`, `removedAt: new Date()`, `removedReason: reason || null`.
-  - Underlying file remains on disk (or moved to soft-delete folder) and is NOT deleted to maintain auditability.
+  - Updates DB record: `isRemoved: true`, `removedAt: new Date()`, `removedReason: removedReason || null`.
+  - Underlying file remains on disk at `server/uploads/attachments/` and is NOT deleted to maintain auditability. Soft-removal relies solely on `isRemoved: true` in the DB.
 - **Response `200 OK`**:
 ```json
 {
@@ -341,9 +345,9 @@ Soft-removes an attachment with an optional reason.
 | **200** | OK | Successful `GET` queries (requesters, categories, tickets list/detail), download stream, and `PATCH` soft-remove. |
 | **201** | Created | Successful `POST /api/tickets` and `POST /api/tickets/:id/attachments`. |
 | **400** | Bad Request | Validation errors (e.g. summary < 5 chars, description > 2000 chars, limit of 5 attachments exceeded, invalid query params). |
-| **401** | Unauthorized | Missing `X-Requester-Id` header on protected ticket routes. |
-| **403** | Forbidden | Requester identity inactive, or attempting to access/modify a ticket belonging to another requester. |
-| **404** | Not Found | Requested ticket or attachment does not exist (or belongs to another user, preventing enumeration). |
+| **401** | Unauthorized | Missing `X-Requester-Id` header (or missing `requesterId` query param on download) on protected routes. |
+| **403** | Forbidden | Requester identity inactive (`isActive: false`). |
+| **404** | Not Found | Requested ticket or attachment does not exist, or belongs to another requester (preventing user enumeration). |
 | **410** | Gone | Attempted download of an attachment flagged as `isRemoved = true`. |
 | **413** | Payload Too Large | Uploaded file size exceeds the 5 MB limit. |
 | **415** | Unsupported Media Type | Uploaded file MIME type is not JPEG, PNG, WEBP, or PDF. |
