@@ -1,9 +1,5 @@
 import { getPrisma } from "../src/prisma.js";
 
-// Issue 3 — seed the four supported categories.
-// The four names are: Account and Access, Hardware, Software, Network.
-// Requirement: running the seed twice must NOT create duplicates.
-// Hint: prisma.category.upsert({ where:{name}, update:{}, create:{name} }).
 async function main() {
   const prisma = getPrisma();
   const categories = [
@@ -16,8 +12,33 @@ async function main() {
   for (const name of categories) {
     await prisma.category.upsert({
       where: { name },
-      update: {},
-      create: { name },
+      update: { isActive: true },
+      create: { name, isActive: true },
+    });
+  }
+
+  const relatedSystems = [
+    { name: "Email", description: "University mail service" },
+    { name: "Campus Wi-Fi", description: "KMUTT Secure Wireless" },
+    { name: "VPN", description: "Off-campus network access" },
+    { name: "LEB2 App", description: "Learning environment platform" },
+    { name: "Grade Submission App", description: "Faculty grading system" },
+    { name: "Printer", description: "Central and departmental printers" },
+    { name: "Corporate Laptop", description: "Assigned university laptop" },
+  ];
+
+  for (const sys of relatedSystems) {
+    await prisma.relatedSystem.upsert({
+      where: { name: sys.name },
+      update: {
+        description: sys.description,
+        isActive: true,
+      },
+      create: {
+        name: sys.name,
+        description: sys.description,
+        isActive: true,
+      },
     });
   }
 
@@ -66,7 +87,7 @@ async function main() {
     });
   }
 
-  console.log(`Successfully seeded ${categories.length} categories and ${requesters.length} requesters.`);
+  console.log(`Successfully seeded ${categories.length} categories, ${relatedSystems.length} related systems, and ${requesters.length} requesters.`);
 }
 
 main()

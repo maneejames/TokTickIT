@@ -1,24 +1,31 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useRequester } from "../context/RequesterContext.js";
 import { RequesterSelect } from "./RequesterSelect.js";
-export const AppShell = ({ children }) => {
+export const AppShell = ({ children, activeNav = "create-ticket", onNavSelect, }) => {
     const { currentRequester, changeRequester, isLoading } = useRequester();
     return (_jsxs("div", { className: "d-flex flex-column min-vh-100", style: { backgroundColor: "var(--color-page-bg)" }, children: [_jsxs("header", { className: "d-flex align-items-center justify-content-between px-4", style: {
                     backgroundColor: "var(--color-primary-green)",
                     height: "60px",
                     color: "#FFFFFF",
-                }, children: [_jsxs("div", { className: "d-flex align-items-center gap-4", children: [_jsx("div", { className: "d-flex align-items-center gap-2", children: _jsx("h1", { style: { fontSize: "20px", fontWeight: 700, letterSpacing: "-0.5px", margin: 0, color: "#FFFFFF" }, children: "TokTickIT" }) }), currentRequester && (_jsxs("nav", { className: "d-none d-md-flex align-items-center gap-3 ms-3", children: [_jsx("span", { style: {
-                                            color: "#FFFFFF",
-                                            fontWeight: 600,
+                }, children: [_jsxs("div", { className: "d-flex align-items-center gap-4", children: [_jsx("div", { className: "d-flex align-items-center gap-2", children: _jsx("h1", { style: { fontSize: "20px", fontWeight: 700, letterSpacing: "-0.5px", margin: 0, color: "#FFFFFF" }, children: "TokTickIT" }) }), currentRequester && (_jsxs("nav", { className: "d-none d-md-flex align-items-center gap-3 ms-3", children: [_jsx("span", { role: "button", tabIndex: 0, onClick: () => onNavSelect?.("my-tickets"), onKeyDown: (e) => {
+                                            if (e.key === "Enter" || e.key === " ")
+                                                onNavSelect?.("my-tickets");
+                                        }, style: {
+                                            color: activeNav === "my-tickets" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                                            fontWeight: activeNav === "my-tickets" ? 600 : 500,
                                             fontSize: "14px",
                                             cursor: "pointer",
-                                            borderBottom: "3px solid #FFFFFF",
+                                            borderBottom: activeNav === "my-tickets" ? "3px solid #FFFFFF" : "none",
                                             paddingBottom: "4px",
-                                        }, children: "My Tickets" }), _jsx("span", { style: {
-                                            color: "rgba(255, 255, 255, 0.8)",
-                                            fontWeight: 500,
+                                        }, children: "My Tickets" }), _jsx("span", { role: "button", tabIndex: 0, onClick: () => onNavSelect?.("create-ticket"), onKeyDown: (e) => {
+                                            if (e.key === "Enter" || e.key === " ")
+                                                onNavSelect?.("create-ticket");
+                                        }, style: {
+                                            color: activeNav === "create-ticket" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                                            fontWeight: activeNav === "create-ticket" ? 600 : 500,
                                             fontSize: "14px",
                                             cursor: "pointer",
+                                            borderBottom: activeNav === "create-ticket" ? "3px solid #FFFFFF" : "none",
                                             paddingBottom: "4px",
                                         }, children: "Create Ticket" })] }))] }), _jsx("div", { className: "d-flex align-items-center", children: currentRequester ? (_jsxs("div", { className: "d-flex align-items-center gap-3", children: [_jsxs("div", { className: "d-flex align-items-center px-3 py-1 rounded-pill", style: {
                                         backgroundColor: "rgba(255, 255, 255, 0.15)",

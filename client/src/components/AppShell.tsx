@@ -4,9 +4,15 @@ import { RequesterSelect } from "./RequesterSelect.js";
 
 interface AppShellProps {
   children?: React.ReactNode;
+  activeNav?: "my-tickets" | "create-ticket";
+  onNavSelect?: (nav: "my-tickets" | "create-ticket") => void;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+export const AppShell: React.FC<AppShellProps> = ({
+  children,
+  activeNav = "create-ticket",
+  onNavSelect,
+}) => {
   const { currentRequester, changeRequester, isLoading } = useRequester();
 
   return (
@@ -31,23 +37,36 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           {currentRequester && (
             <nav className="d-none d-md-flex align-items-center gap-3 ms-3">
               <span
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavSelect?.("my-tickets")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onNavSelect?.("my-tickets");
+                }}
                 style={{
-                  color: "#FFFFFF",
-                  fontWeight: 600,
+                  color: activeNav === "my-tickets" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                  fontWeight: activeNav === "my-tickets" ? 600 : 500,
                   fontSize: "14px",
                   cursor: "pointer",
-                  borderBottom: "3px solid #FFFFFF",
+                  borderBottom: activeNav === "my-tickets" ? "3px solid #FFFFFF" : "none",
                   paddingBottom: "4px",
                 }}
               >
                 My Tickets
               </span>
               <span
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavSelect?.("create-ticket")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onNavSelect?.("create-ticket");
+                }}
                 style={{
-                  color: "rgba(255, 255, 255, 0.8)",
-                  fontWeight: 500,
+                  color: activeNav === "create-ticket" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                  fontWeight: activeNav === "create-ticket" ? 600 : 500,
                   fontSize: "14px",
                   cursor: "pointer",
+                  borderBottom: activeNav === "create-ticket" ? "3px solid #FFFFFF" : "none",
                   paddingBottom: "4px",
                 }}
               >
