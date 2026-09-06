@@ -14,7 +14,7 @@ Because authentication is implemented in Lab 3, Lab 2 simulates multi-user reque
   X-Requester-Id: <number>
   ```
 - **Download Endpoint Exception**: For `GET /api/tickets/:id/attachments/:attachmentId/download` ONLY, clients may alternatively provide the requester ID via query parameter (`?requesterId=<number>`) to support plain browser anchor `<a href>` downloads without custom headers. Both `X-Requester-Id` header and `?requesterId=` query param are accepted.
-- If requester identity is missing, malformed, or references an inactive/non-existent user, the server rejects the request with `401 Unauthorized` (missing) or `403 Forbidden` (inactive).
+- If requester identity is missing on protected routes, the server rejects the request with `401 Unauthorized`. If it references an inactive user, it returns `403 Forbidden`. If it references a non-existent user ID or is malformed, it returns `404 Not Found`.
 
 ### Standard Error Response Format
 All error responses return a standardized JSON envelope:

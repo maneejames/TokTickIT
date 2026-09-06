@@ -21,7 +21,52 @@ async function main() {
     });
   }
 
-  console.log(`Successfully seeded ${categories.length} categories.`);
+  const requesters = [
+    {
+      name: "Somchai Jaidee",
+      email: "somchai.jai@kmutt.ac.th",
+      department: "Engineering",
+      isActive: true,
+    },
+    {
+      name: "Suda Rakdee",
+      email: "suda.rak@kmutt.ac.th",
+      department: "Science",
+      isActive: true,
+    },
+    {
+      name: "John Doe",
+      email: "john.doe@kmutt.ac.th",
+      department: "Information Technology",
+      isActive: true,
+    },
+    {
+      name: "Jane Smith",
+      email: "jane.smith@kmutt.ac.th",
+      department: "Digital Arts",
+      isActive: true,
+    },
+    {
+      name: "Anon Olduser",
+      email: "anon.old@kmutt.ac.th",
+      department: "Former Staff",
+      isActive: false,
+    },
+  ];
+
+  for (const req of requesters) {
+    await prisma.requesterUser.upsert({
+      where: { email: req.email },
+      update: {
+        name: req.name,
+        department: req.department,
+        isActive: req.isActive,
+      },
+      create: req,
+    });
+  }
+
+  console.log(`Successfully seeded ${categories.length} categories and ${requesters.length} requesters.`);
 }
 
 main()

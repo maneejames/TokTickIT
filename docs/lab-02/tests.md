@@ -23,11 +23,13 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 
 | Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final Status |
 |---|---|---|---|---|---|---|
-| **REQ-API-01** | API | AC-01 | Fetch active requesters | 200 OK; returns seeded active requesters; inactive excluded | `server/tests/lab-02/requesters.api.test.ts` | Planned |
-| **REQ-API-02** | API | AC-04 | Request with invalid `X-Requester-Id` | 403 Forbidden with descriptive error envelope | `server/tests/lab-02/requesters.api.test.ts` | Planned |
-| **REQ-UI-01** | UI | AC-01, AC-02 | Requester Selection dropdown & Continue | Selecting user saves to localStorage and displays name in shell | `client/tests/lab-02/RequesterSelect.test.tsx` | Planned |
-| **REQ-UI-02** | UI | AC-03 | Change Requester action | Clicking Change Requester returns to selection screen | `client/tests/lab-02/RequesterSelect.test.tsx` | Planned |
-| **REQ-UI-03** | UI | AC-04 | Stale/invalid localStorage ID handling | Clears localStorage and redirects to Requester Selection screen | `client/tests/lab-02/RequesterSelect.test.tsx` | Planned |
+| **REQ-API-01** | API | AC-01 | Fetch active requesters | 200 OK; returns seeded active requesters; inactive excluded | `server/tests/lab-02/requesters.api.test.ts` | Passed |
+| **REQ-API-02** | API | AC-04, BR-04 | Request with inactive `X-Requester-Id` | 403 Forbidden with descriptive error envelope | `server/tests/lab-02/requesters.api.test.ts` | Passed |
+| **REQ-API-03** | API | BR-04 | Request missing `X-Requester-Id` | 401 Unauthorized with descriptive error envelope | `server/tests/lab-02/requesters.api.test.ts` | Passed |
+| **REQ-API-04** | API | AC-04 | Request with nonexistent `X-Requester-Id` | 404 Not Found with descriptive error envelope | `server/tests/lab-02/requesters.api.test.ts` | Passed |
+| **REQ-UI-01** | UI | AC-01, AC-02 | Requester Selection dropdown & Continue | Selecting user saves to localStorage and displays name in shell | `client/tests/lab-02/RequesterSelect.test.tsx` | Passed |
+| **REQ-UI-02** | UI | AC-03 | Change Requester action | Clicking Change Requester returns to selection screen | `client/tests/lab-02/RequesterSelect.test.tsx` | Passed |
+| **REQ-UI-03** | UI | AC-04 | Stale/invalid localStorage ID handling | Clears localStorage and redirects to Requester Selection screen | `client/tests/lab-02/RequesterSelect.test.tsx` | Passed |
 | **REF-API-01** | API | FR-04 | Fetch active categories | 200 OK; returns seeded categories with `isActive = true` | `server/tests/lab-02/reference-data.api.test.ts` | Planned |
 | **REF-API-02** | API | FR-04 | Fetch active related systems | 200 OK; returns seeded systems with `isActive = true` | `server/tests/lab-02/reference-data.api.test.ts` | Planned |
 | **TICK-UNIT-01** | Unit | BR-01, AC-05 | Ticket number generator format | Dedicated TicketSequence table atomic daily counter; generates `TICK-YYYYMMDD-XXXX` via SELECT FOR UPDATE | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
@@ -72,7 +74,7 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 | **AC-01** | Only active requesters displayed in dropdown | `REQ-API-01`, `REQ-UI-01`, `E2E-01` |
 | **AC-02** | Shell displays selected requester name & dept | `REQ-UI-01`, `E2E-01` |
 | **AC-03** | "Change Requester" action resets context | `REQ-UI-02`, `E2E-01` |
-| **AC-04** | Stored invalid requester redirected to selector | `REQ-API-02`, `REQ-UI-01`, `REQ-UI-03` |
+| **AC-04** | Stored invalid requester redirected to selector | `REQ-API-02`, `REQ-API-03`, `REQ-API-04`, `REQ-UI-01`, `REQ-UI-03` |
 | **AC-05** | Valid ticket creation with status New and official # | `TICK-UNIT-01`, `TICK-API-01`, `TICK-UI-04`, `E2E-01` |
 | **AC-06** | Summary/Description whitespace trimming | `TICK-API-02`, `TICK-API-03` |
 | **AC-07** | Field-level error messages on missing/short inputs | `TICK-API-02`, `TICK-UI-01` |

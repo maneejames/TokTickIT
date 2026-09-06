@@ -25,3 +25,14 @@ model Category {
   createdAt DateTime @default(now())
 }
 
+model RequesterUser {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  department String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("requester_users")
+}
+

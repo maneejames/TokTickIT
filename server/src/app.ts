@@ -45,4 +45,43 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lab 2 Issue 3 — Requester Endpoints
+// GET /api/requesters: returns only active requesters per api-spec.md Section 2.1
+// ---------------------------------------------------------------------------
+import { requireRequester } from "./middleware/requesterAuth.js";
+
+app.get("/api/requesters", async (_req: Request, res: Response) => {
+  try {
+    const requesters = await getPrisma().requesterUser.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        department: true,
+        isActive: true,
+      },
+      orderBy: {
+        id: "asc",
+      },
+    });
+    res.status(200).json(requesters);
+  } catch (_err: unknown) {
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to fetch requesters",
+      },
+    });
+  }
+});
+
+// Reusable middleware verification endpoint
+app.get("/api/requester-test-auth", requireRequester, (req: Request, res: Response) => {
+  res.status(200).json({ ok: true, requester: req.requester });
+});
+
 export default app;
