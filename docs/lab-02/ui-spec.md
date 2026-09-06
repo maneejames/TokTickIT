@@ -158,7 +158,7 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
 - **Layout**: Full container (`max-width: 1140px`).
 - **Toolbar**:
   - Left: Search box (text input with search icon, placeholder: *"Search by summary or ticket #..."*).
-  - Center: Category filter dropdown, Status filter dropdown.
+  - Center: Category filter dropdown, Priority filter dropdown (All Priorities, Low, Medium, High), Status filter dropdown.
   - Right: "Create Ticket" primary button (`+ New Ticket`).
 - **Desktop Table View (≥992px)**:
   - Columns:

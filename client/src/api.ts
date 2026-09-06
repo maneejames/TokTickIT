@@ -229,3 +229,86 @@ export async function uploadAttachment(
 
   return res.json();
 }
+
+export interface TicketListItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: number; name: string };
+  relatedSystem?: { id: number; name: string };
+  _count?: { attachments: number };
+}
+
+export interface PaginationMetadata {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface PaginatedTickets {
+  items: TicketListItem[];
+  pagination: PaginationMetadata;
+}
+
+export interface GetTicketsParams {
+  search?: string;
+  categoryId?: number;
+  status?: string;
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  requestedPriority?: "LOW" | "MEDIUM" | "HIGH";
+  sortBy?: "createdAt" | "requestedPriority" | "status" | "summary";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getTickets(
+  params: GetTicketsParams = {},
+  requesterId: number
+): Promise<PaginatedTickets> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.categoryId) query.set("categoryId", String(params.categoryId));
+  if (params.status) query.set("status", params.status);
+  const priorityVal = params.requestedPriority || params.priority;
+  if (priorityVal) query.set("requestedPriority", priorityVal);
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.pageSize !== undefined) query.set("pageSize", String(params.pageSize));
+
+  const queryString = query.toString();
+  const url = `${API_URL}/api/tickets${queryString ? `?${queryString}` : ""}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "X-Requester-Id": String(requesterId),
+      },
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch tickets (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
