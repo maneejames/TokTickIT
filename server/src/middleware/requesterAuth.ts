@@ -29,7 +29,7 @@ export async function requireRequester(
   res: Response,
   next: NextFunction
 ) {
-  const headerVal = req.header("x-requester-id");
+  const headerVal = req.header("x-requester-id") ?? req.query.requesterId;
   if (!headerVal) {
     return res.status(401).json({
       error: {

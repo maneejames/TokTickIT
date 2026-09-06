@@ -167,9 +167,14 @@ export const MyTickets = ({ currentRequester, onNavigateToCreateTicket, onNaviga
     // Sort indicator helper
     const renderSortIndicator = (field) => {
         if (sortBy !== field) {
-            return _jsx("span", { style: { color: "#AAA", marginLeft: "4px", fontSize: "11px" }, children: "\u2195" });
+            return (_jsx("span", { style: { color: "#AAA", marginLeft: "6px", fontSize: "11px", whiteSpace: "nowrap" }, children: "\u2195" }));
         }
-        return (_jsx("span", { style: { color: "var(--color-primary-green)", marginLeft: "4px", fontSize: "11px" }, children: sortOrder === "asc" ? "▲" : "▼" }));
+        return (_jsx("span", { style: {
+                color: "var(--color-primary-green)",
+                marginLeft: "6px",
+                fontSize: "11px",
+                whiteSpace: "nowrap",
+            }, children: sortOrder === "asc" ? "▲" : "▼" }));
     };
     // Whether user has active filters applied
     const hasActiveFilters = Boolean(search || selectedCategory || selectedPriority || selectedStatus);
@@ -206,22 +211,25 @@ export const MyTickets = ({ currentRequester, onNavigateToCreateTicket, onNaviga
             // Empty State (Requester has zero tickets ever created)
             _jsxs("div", { className: "zen-card p-5 text-center my-4", children: [_jsx("div", { style: { fontSize: "48px", color: "var(--color-secondary-green)" }, children: "\uD83D\uDCCB" }), _jsx("h2", { className: "h5 fw-bold mt-3", style: { color: "var(--color-primary-green)" }, children: "You haven't submitted any tickets yet." }), _jsx("p", { className: "text-muted small mt-1 mb-4", children: "Need assistance? Submit your first IT support request now." }), _jsx("button", { type: "button", className: "zen-btn-primary", onClick: onNavigateToCreateTicket, children: "Create Ticket" })] }))) : (
             // Results Listing: Desktop Table (≥992px) and Mobile Cards (<768px)
-            _jsxs("div", { children: [_jsx("div", { className: "d-none d-lg-block zen-card overflow-hidden mb-4", "data-testid": "tickets-table", children: _jsx("div", { className: "table-responsive", children: _jsxs("table", { className: "table table-hover align-middle mb-0", style: { borderCollapse: "collapse" }, children: [_jsx("thead", { style: { backgroundColor: "#F9FAF9", borderBottom: "2px solid var(--color-border)" }, children: _jsxs("tr", { children: [_jsx("th", { scope: "col", style: { width: "160px", padding: "12px 16px" }, children: "Ticket #" }), _jsxs("th", { scope: "col", onClick: () => handleSortToggle("summary"), style: { cursor: "pointer", userSelect: "none", padding: "12px 16px" }, children: ["Summary ", renderSortIndicator("summary")] }), _jsx("th", { scope: "col", style: { width: "150px", padding: "12px 16px" }, children: "Category" }), _jsxs("th", { scope: "col", onClick: () => handleSortToggle("requestedPriority"), style: {
+            _jsxs("div", { children: [_jsx("div", { className: "d-none d-lg-block zen-card overflow-hidden mb-4", "data-testid": "tickets-table", children: _jsx("div", { className: "table-responsive", children: _jsxs("table", { className: "table table-hover align-middle mb-0", style: { borderCollapse: "collapse" }, children: [_jsx("thead", { style: { backgroundColor: "#F9FAF9", borderBottom: "2px solid var(--color-border)" }, children: _jsxs("tr", { children: [_jsx("th", { scope: "col", style: { width: "160px", padding: "12px 16px" }, children: "Ticket #" }), _jsx("th", { scope: "col", onClick: () => handleSortToggle("summary"), style: { cursor: "pointer", userSelect: "none", padding: "12px 16px", whiteSpace: "nowrap" }, children: _jsxs("span", { className: "d-inline-flex align-items-center", children: ["Summary ", renderSortIndicator("summary")] }) }), _jsx("th", { scope: "col", style: { width: "150px", padding: "12px 16px", whiteSpace: "nowrap" }, children: "Category" }), _jsx("th", { scope: "col", onClick: () => handleSortToggle("requestedPriority"), style: {
+                                                        cursor: "pointer",
+                                                        userSelect: "none",
+                                                        width: "120px",
+                                                        padding: "12px 16px",
+                                                        whiteSpace: "nowrap",
+                                                    }, children: _jsxs("span", { className: "d-inline-flex align-items-center", children: ["Priority ", renderSortIndicator("requestedPriority")] }) }), _jsx("th", { scope: "col", onClick: () => handleSortToggle("status"), style: {
                                                         cursor: "pointer",
                                                         userSelect: "none",
                                                         width: "110px",
                                                         padding: "12px 16px",
-                                                    }, children: ["Priority ", renderSortIndicator("requestedPriority")] }), _jsxs("th", { scope: "col", onClick: () => handleSortToggle("status"), style: {
+                                                        whiteSpace: "nowrap",
+                                                    }, children: _jsxs("span", { className: "d-inline-flex align-items-center", children: ["Status ", renderSortIndicator("status")] }) }), _jsx("th", { scope: "col", style: { width: "120px", padding: "12px 16px", whiteSpace: "nowrap" }, children: "Attachments" }), _jsx("th", { scope: "col", onClick: () => handleSortToggle("createdAt"), style: {
                                                         cursor: "pointer",
                                                         userSelect: "none",
-                                                        width: "90px",
+                                                        width: "160px",
                                                         padding: "12px 16px",
-                                                    }, children: ["Status ", renderSortIndicator("status")] }), _jsx("th", { scope: "col", style: { width: "110px", padding: "12px 16px" }, children: "Attachments" }), _jsxs("th", { scope: "col", onClick: () => handleSortToggle("createdAt"), style: {
-                                                        cursor: "pointer",
-                                                        userSelect: "none",
-                                                        width: "150px",
-                                                        padding: "12px 16px",
-                                                    }, children: ["Date Created ", renderSortIndicator("createdAt")] }), _jsx("th", { scope: "col", style: { width: "80px", textAlign: "center", padding: "12px 16px" }, children: "Action" })] }) }), _jsx("tbody", { children: tickets.map((t) => (_jsxs("tr", { style: { cursor: "pointer" }, onClick: () => onNavigateToTicketDetail?.(t.id), children: [_jsx("td", { style: { padding: "14px 16px" }, children: _jsx("a", { href: `/tickets/${t.id}`, onClick: (e) => {
+                                                        whiteSpace: "nowrap",
+                                                    }, children: _jsxs("span", { className: "d-inline-flex align-items-center", children: ["Date Created ", renderSortIndicator("createdAt")] }) }), _jsx("th", { scope: "col", style: { width: "80px", textAlign: "center", padding: "12px 16px" }, children: "Action" })] }) }), _jsx("tbody", { children: tickets.map((t) => (_jsxs("tr", { style: { cursor: "pointer" }, onClick: () => onNavigateToTicketDetail?.(t.id), children: [_jsx("td", { style: { padding: "14px 16px" }, children: _jsx("a", { href: `/tickets/${t.id}`, onClick: (e) => {
                                                             e.preventDefault();
                                                             onNavigateToTicketDetail?.(t.id);
                                                         }, style: {

@@ -4,7 +4,7 @@ import { getCategories, getRelatedSystems, createTicket, uploadAttachment, } fro
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-export const CreateTicket = ({ currentRequester, onNavigateToMyTickets, }) => {
+export const CreateTicket = ({ currentRequester, onNavigateToMyTickets, onNavigateToTicketDetail, }) => {
     // Reference data state
     const [categories, setCategories] = useState([]);
     const [relatedSystems, setRelatedSystems] = useState([]);
@@ -185,7 +185,12 @@ export const CreateTicket = ({ currentRequester, onNavigateToMyTickets, }) => {
                             backgroundColor: "var(--color-warning-bg)",
                             border: "1px solid #E5CE85",
                             color: "#6C4E00",
-                        }, role: "alert", children: [_jsx("strong", { children: "Attachment Upload Notice:" }), " Ticket ", ticket.ticketNumber, " created.", " ", failedAttachmentsCount, " of ", totalAttachmentsCount, " attachments failed to upload \u2014 you can retry from Ticket Detail."] })), _jsxs("div", { className: "d-flex flex-column flex-sm-row justify-content-center gap-3 mt-4", children: [_jsx("a", { href: `/tickets/${ticket.id}`, className: "zen-btn-primary text-center text-decoration-none", style: { padding: "10px 20px" }, children: "View Ticket Details" }), _jsx("button", { type: "button", className: "zen-btn-secondary", onClick: handleCreateAnother, style: { padding: "10px 20px" }, children: "Create Another Ticket" })] })] }) }));
+                        }, role: "alert", children: [_jsx("strong", { children: "Attachment Upload Notice:" }), " Ticket ", ticket.ticketNumber, " created.", " ", failedAttachmentsCount, " of ", totalAttachmentsCount, " attachments failed to upload \u2014 you can retry from Ticket Detail."] })), _jsxs("div", { className: "d-flex flex-column flex-sm-row justify-content-center gap-3 mt-4", children: [_jsx("a", { href: `/tickets/${ticket.id}`, className: "zen-btn-primary text-center text-decoration-none", style: { padding: "10px 20px" }, onClick: (e) => {
+                                    if (onNavigateToTicketDetail) {
+                                        e.preventDefault();
+                                        onNavigateToTicketDetail(ticket.id);
+                                    }
+                                }, children: "View Ticket Details" }), _jsx("button", { type: "button", className: "zen-btn-secondary", onClick: handleCreateAnother, style: { padding: "10px 20px" }, children: "Create Another Ticket" })] })] }) }));
     }
     const currentDateFormatted = new Date().toLocaleDateString("en-GB", {
         day: "2-digit",

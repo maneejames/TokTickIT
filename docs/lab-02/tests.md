@@ -59,9 +59,9 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 | **ATT-API-05** | API | AC-21 | Download active attachment | 200 OK; binary stream matching original filename header (via header or `?requesterId=`) | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | **ATT-API-06** | API | AC-23 | Soft-remove attachment with reason | 200 OK; `isRemoved=true`, records `removedReason` | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | **ATT-API-07** | API | AC-24 | Block download of soft-removed file | 410 Gone when requesting removed file | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| **ATT-UI-01** | UI | AC-22, AC-23 | Soft-removal modal and reason | Confirmation modal opens; submitting sends `removedReason` and updates UI | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| **ATT-UI-02** | UI | AC-20 | Dropzone hidden at 5 attachments | Upload input hidden/disabled when 5 active files exist | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
-| **ATT-UI-03** | UI | AC-08 | Client-side immediate file validation error | Displays inline error below dropzone when file > 5MB or invalid MIME selected | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
+| **ATT-UI-01** | UI | AC-22, AC-23 | Soft-removal modal and reason | Confirmation modal opens; submitting sends `removedReason` and updates UI | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
+| **ATT-UI-02** | UI | AC-20 | Dropzone hidden at 5 attachments | Upload input hidden/disabled when 5 active files exist | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
+| **ATT-UI-03** | UI | AC-08 | Client-side immediate file validation error | Displays inline error below dropzone when file > 5MB or invalid MIME selected | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | **A11Y-UI-01** | UI | AC-26 | Keyboard focus rings visible | Tab navigation shows `--color-secondary-green` focus ring | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | **E2E-01** | E2E | AC-01–AC-25 | Complete Requester Ticketing Journey | Selects user -> creates ticket -> finds in list -> manages attachment | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 

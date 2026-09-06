@@ -212,10 +212,21 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
   // Sort indicator helper
   const renderSortIndicator = (field: SortByField) => {
     if (sortBy !== field) {
-      return <span style={{ color: "#AAA", marginLeft: "4px", fontSize: "11px" }}>↕</span>;
+      return (
+        <span style={{ color: "#AAA", marginLeft: "6px", fontSize: "11px", whiteSpace: "nowrap" }}>
+          ↕
+        </span>
+      );
     }
     return (
-      <span style={{ color: "var(--color-primary-green)", marginLeft: "4px", fontSize: "11px" }}>
+      <span
+        style={{
+          color: "var(--color-primary-green)",
+          marginLeft: "6px",
+          fontSize: "11px",
+          whiteSpace: "nowrap",
+        }}
+      >
         {sortOrder === "asc" ? "▲" : "▼"}
       </span>
     );
@@ -473,11 +484,13 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
                     <th
                       scope="col"
                       onClick={() => handleSortToggle("summary")}
-                      style={{ cursor: "pointer", userSelect: "none", padding: "12px 16px" }}
+                      style={{ cursor: "pointer", userSelect: "none", padding: "12px 16px", whiteSpace: "nowrap" }}
                     >
-                      Summary {renderSortIndicator("summary")}
+                      <span className="d-inline-flex align-items-center">
+                        Summary {renderSortIndicator("summary")}
+                      </span>
                     </th>
-                    <th scope="col" style={{ width: "150px", padding: "12px 16px" }}>
+                    <th scope="col" style={{ width: "150px", padding: "12px 16px", whiteSpace: "nowrap" }}>
                       Category
                     </th>
                     <th
@@ -486,11 +499,14 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
                       style={{
                         cursor: "pointer",
                         userSelect: "none",
-                        width: "110px",
+                        width: "120px",
                         padding: "12px 16px",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      Priority {renderSortIndicator("requestedPriority")}
+                      <span className="d-inline-flex align-items-center">
+                        Priority {renderSortIndicator("requestedPriority")}
+                      </span>
                     </th>
                     <th
                       scope="col"
@@ -498,13 +514,16 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
                       style={{
                         cursor: "pointer",
                         userSelect: "none",
-                        width: "90px",
+                        width: "110px",
                         padding: "12px 16px",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      Status {renderSortIndicator("status")}
+                      <span className="d-inline-flex align-items-center">
+                        Status {renderSortIndicator("status")}
+                      </span>
                     </th>
-                    <th scope="col" style={{ width: "110px", padding: "12px 16px" }}>
+                    <th scope="col" style={{ width: "120px", padding: "12px 16px", whiteSpace: "nowrap" }}>
                       Attachments
                     </th>
                     <th
@@ -513,11 +532,14 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
                       style={{
                         cursor: "pointer",
                         userSelect: "none",
-                        width: "150px",
+                        width: "160px",
                         padding: "12px 16px",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      Date Created {renderSortIndicator("createdAt")}
+                      <span className="d-inline-flex align-items-center">
+                        Date Created {renderSortIndicator("createdAt")}
+                      </span>
                     </th>
                     <th scope="col" style={{ width: "80px", textAlign: "center", padding: "12px 16px" }}>
                       Action
