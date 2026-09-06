@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { AppShell } from "./components/AppShell.js";
 import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
 
 function MainContent() {
   const { currentRequester } = useRequester();
-  const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket">("create-ticket");
+  const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket">("my-tickets");
 
   return (
     <AppShell activeNav={activeNav} onNavSelect={setActiveNav}>
@@ -16,23 +17,13 @@ function MainContent() {
             onNavigateToMyTickets={() => setActiveNav("my-tickets")}
           />
         ) : (
-          <div className="container py-5 text-center">
-            <div className="zen-card p-5 mx-auto" style={{ maxWidth: "600px" }}>
-              <h2 className="h5 fw-bold" style={{ color: "var(--color-primary-green)" }}>
-                My Tickets
-              </h2>
-              <p className="text-muted mt-2">
-                My Tickets screen will be implemented in Sprint Issue #5.
-              </p>
-              <button
-                type="button"
-                className="zen-btn-primary mt-2"
-                onClick={() => setActiveNav("create-ticket")}
-              >
-                Go to Create Ticket
-              </button>
-            </div>
-          </div>
+          <MyTickets
+            currentRequester={currentRequester}
+            onNavigateToCreateTicket={() => setActiveNav("create-ticket")}
+            onNavigateToTicketDetail={(ticketId) => {
+              window.location.href = `/tickets/${ticketId}`;
+            }}
+          />
         )
       )}
     </AppShell>

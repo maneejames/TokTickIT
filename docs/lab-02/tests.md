@@ -44,7 +44,7 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 | **LIST-API-02** | API | AC-12 | Cross-requester ticket isolation | Requester B does not receive Requester A's tickets | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **LIST-API-03** | API | AC-13 | Pagination parameters | Respects `page` and `pageSize`; returns pagination metadata | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **LIST-API-04** | API | AC-14, AC-16 | Search substring and sort query options | Substring match on BOTH fields — `ILIKE '%search%'` on summary or ticketNumber; sorts ascending/descending | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| **LIST-API-05** | API | FR-11 | Filter by categoryId and status | 200 OK; returns only tickets matching categoryId and status params | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
+| **LIST-API-05** | API | FR-11 | Filter by categoryId, status, and priority | 200 OK; returns only tickets matching categoryId, status, and requestedPriority params | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **LIST-API-06** | API | FR-12 | Sort by requestedPriority, status, summary | 200 OK; sorts tickets correctly according to sortBy and sortOrder | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
 | **LIST-UI-01** | UI | AC-11, AC-25 | Desktop table vs mobile card view | Renders 8-column table on desktop (including Attachments) and stacked cards on mobile | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | **LIST-UI-02** | UI | AC-12 | Empty tickets state | Displays "You haven't submitted any tickets yet" when count=0 | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
