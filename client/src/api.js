@@ -44,3 +44,16 @@ export async function checkSystem() {
         categories,
     };
 }
+export async function getRequesters() {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/requesters`);
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        throw new Error(`Requesters fetch failed: Server returned HTTP ${res.status} (${res.statusText || "Error"})`);
+    }
+    return res.json();
+}

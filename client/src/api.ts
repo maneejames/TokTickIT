@@ -67,3 +67,26 @@ export async function checkSystem(): Promise<SystemStatus> {
   };
 }
 
+export interface RequesterUser {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  isActive: boolean;
+}
+
+export async function getRequesters(): Promise<RequesterUser[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/requesters`);
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Requesters fetch failed: Server returned HTTP ${res.status} (${res.statusText || "Error"})`);
+  }
+
+  return res.json();
+}
+
