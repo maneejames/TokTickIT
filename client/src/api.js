@@ -12,11 +12,6 @@ export async function checkHealth() {
     }
     return res.json();
 }
-// Issue 2 + Issue 4 — call the backend.
-// Steps: fetch `${API_URL}/api/health`; if not ok, throw.
-//        then fetch `${API_URL}/api/categories`; if not ok, throw.
-//        return { online: true, categories }.
-// Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem() {
     let healthRes;
     try {
@@ -54,6 +49,96 @@ export async function getRequesters() {
     }
     if (!res.ok) {
         throw new Error(`Requesters fetch failed: Server returned HTTP ${res.status} (${res.statusText || "Error"})`);
+    }
+    return res.json();
+}
+export async function getCategories() {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/categories`);
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        throw new Error(`Failed to fetch categories: Server returned HTTP ${res.status}`);
+    }
+    return res.json();
+}
+export async function getRelatedSystems() {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/related-systems`);
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        throw new Error(`Failed to fetch related systems: Server returned HTTP ${res.status}`);
+    }
+    return res.json();
+}
+export async function createTicket(payload, requesterId) {
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/tickets`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requester-Id": String(requesterId),
+            },
+            body: JSON.stringify(payload),
+        });
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        let errorMsg = `Server error (HTTP ${res.status})`;
+        try {
+            const errorData = await res.json();
+            if (errorData?.error?.message) {
+                errorMsg = errorData.error.message;
+                if (Array.isArray(errorData.error.details)) {
+                    errorMsg = errorData.error.details.map((d) => d.message).join(", ");
+                }
+            }
+        }
+        catch {
+            // fallback
+        }
+        throw new Error(errorMsg);
+    }
+    return res.json();
+}
+export async function uploadAttachment(ticketId, file, requesterId) {
+    const formData = new FormData();
+    formData.append("file", file);
+    let res;
+    try {
+        res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
+            method: "POST",
+            headers: {
+                "X-Requester-Id": String(requesterId),
+            },
+            body: formData,
+        });
+    }
+    catch {
+        throw new Error("Unable to connect to TokTickIT API");
+    }
+    if (!res.ok) {
+        let errorMsg = `Failed to upload attachment (HTTP ${res.status})`;
+        try {
+            const errorData = await res.json();
+            if (errorData?.error?.message) {
+                errorMsg = errorData.error.message;
+            }
+        }
+        catch {
+            // fallback
+        }
+        throw new Error(errorMsg);
     }
     return res.json();
 }
