@@ -63,7 +63,7 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 | **ATT-UI-02** | UI | AC-20 | Dropzone hidden at 5 attachments | Upload input hidden/disabled when 5 active files exist | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Passed |
 | **ATT-UI-03** | UI | AC-08 | Client-side immediate file validation error | Displays inline error below dropzone when file > 5MB or invalid MIME selected | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Passed |
 | **A11Y-UI-01** | UI | AC-26 | Keyboard focus rings visible | Tab navigation shows `--color-secondary-green` focus ring | `client/tests/lab-02/CreateTicket.test.tsx` | Passed |
-| **E2E-01** | E2E | AC-01–AC-25 | Complete Requester Ticketing Journey | Selects user -> creates ticket -> finds in list -> manages attachment | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
+| **E2E-01** | E2E | AC-01–AC-25 | Complete Requester Ticketing Journey | Selects user -> creates ticket -> finds in list -> manages attachment | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed |
 
 ---
 
@@ -104,14 +104,14 @@ TokTickIT employs a comprehensive multi-tier test pyramid to guarantee quality, 
 
 | Item | Desktop (≥992px) | Tablet (768–991px) | Mobile (<768px) | Verified |
 |---|---|---|---|---|
-| **App Shell & Header** | Horizontal navigation bar, requester pill visible | Horizontal bar, condensed pill | Responsive header, zero horizontal scroll | [ ] |
-| **Requester Selector** | Centered 480px card | Centered 480px card | Full-width container with 16px margins | [ ] |
-| **Create Ticket Form** | 2-column grid for meta/category, spacious fields | 2-column or stacked fields | 1-column vertically stacked fields | [ ] |
-| **My Tickets List** | Full 8-column table (including Attachments count) with hover effects | Condensed table with scroll | Responsive stacked cards with badges | [ ] |
-| **Ticket Detail View** | 2-column grid for metadata, spacious description | 2-column grid, responsive cards | Stacked single-column layout | [ ] |
-| **Attachment Section** | Table/card layout with download/remove buttons | Responsive card rows | Touch-friendly buttons (min 44px height) | [ ] |
-| **Color & Badge Audit** | Zen Green tokens applied; no pure black text | Zen Green tokens verified | Badges readable, high contrast | [ ] |
-| **Visual Defects** | No clipped labels, no overlapping errors | No overflow on inputs | Zero horizontal page scrolling | [ ] |
+| **App Shell & Header** | Horizontal navigation bar, requester pill visible | Horizontal bar, condensed pill | Responsive header, zero horizontal scroll | [x] |
+| **Requester Selector** | Centered 480px card | Centered 480px card | Full-width container with 16px margins | [x] |
+| **Create Ticket Form** | 2-column grid for meta/category, spacious fields | 2-column or stacked fields | 1-column vertically stacked fields | [x] |
+| **My Tickets List** | Full 8-column table (including Attachments count) with hover effects | Condensed table with scroll | Responsive stacked cards with badges | [x] |
+| **Ticket Detail View** | 2-column grid for metadata, spacious description | 2-column grid, responsive cards | Stacked single-column layout | [x] |
+| **Attachment Section** | Table/card layout with download/remove buttons | Responsive card rows | Touch-friendly buttons (min 44px height) | [x] |
+| **Color & Badge Audit** | Zen Green tokens applied; no pure black text | Zen Green tokens verified | Badges readable, high contrast | [x] |
+| **Visual Defects** | No clipped labels, no overlapping errors | No overflow on inputs | Zero horizontal page scrolling | [x] |
 
 ---
 
@@ -145,16 +145,16 @@ npx playwright test
 
 ## 6. Final Results
 
-*(Updated upon completion of implementation issues #3 through #7)*
+*(Updated upon completion of all implementation and release issues #3 through #8)*
 
 | Test Category | Total Tests | Passed | Failed | Skipped | Pass Rate |
 |---|---|---|---|---|---|
 | Backend API & Unit Tests (`server`) | 71 | 71 | 0 | 0 | 100% |
 | Frontend Component Tests (`client`) | 28 | 28 | 0 | 0 | 100% |
-| E2E Acceptance Tests (`e2e`) | 1 | - | - | 0 | Deferred to #8 |
-| **Total Automated Tests** | **99** | **99** | **0** | **0** | **100%** |
+| E2E Acceptance Tests (`e2e`) | 1 | 1 | 0 | 0 | 100% |
+| **Total Automated Tests** | **100** | **100** | **0** | **0** | **100%** |
 
-*(Cumulative test counts across all implementation phases: Lab 1 server: 2, Issue #3: 6, Issue #4: 19, Issue #5: 31, Issue #6: 13 = 71 server tests; Lab 1 client: 3, Issue #3: 3, Issue #4: 7, Issue #5: 8, Issue #6: 7 = 28 client tests. All 99 unit, integration, and component tests are passing with 0 skipped or disabled tests).*
+*(Cumulative test counts across all implementation phases: Lab 1 server: 2, Issue #3: 6, Issue #4: 19, Issue #5: 31, Issue #6: 13 = 71 server tests; Lab 1 client: 3, Issue #3: 3, Issue #4: 7, Issue #5: 8, Issue #6: 7 = 28 client tests; Issue #8 E2E: 1 Playwright journey test = 100 total tests. All 100 unit, integration, component, and E2E tests are verified with 0 skipped or disabled tests).*
 
 ---
 
