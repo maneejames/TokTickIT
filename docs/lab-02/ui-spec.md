@@ -134,18 +134,21 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
   4. **Priority Row**:
      - Field: "Requested Priority *" (3 options: Low, Medium, High; default: Medium).
   5. **Problem Details**:
-     - Field: "Ticket Summary *" (Input text, max 100 chars, placeholder: *"Brief description of the problem"*). Counter indicates character count.
-     - Field: "Problem Description *" (Textarea, 5 rows, max 2000 chars, placeholder: *"Detailed explanation of steps to reproduce..."*).
+     - Field: "Ticket Summary *" (Input text, 5–100 chars after trimming, placeholder: *"Brief description of the problem"*). Counter indicates character count.
+     - Field: "Problem Description *" (Textarea, 5 rows, 10–2000 chars after trimming, placeholder: *"Detailed explanation of steps to reproduce..."*). Counter indicates character count.
   6. **Attachments Section**:
      - File dropzone / file picker supporting multiple files.
      - Helper text: *"Allowed formats: JPG, PNG, WEBP, PDF. Max 5 MB per file. Up to 5 attachments total."*
+     - Immediate inline validation error displayed below dropzone if any file exceeds 5 MB or has an unsupported MIME type.
      - File staging list showing staged files with size and "Remove" button.
+     - Submission flow: Two-step flow. Ticket is created first via `POST /api/tickets` (JSON), followed by sequential uploads to `POST /api/tickets/:id/attachments`.
   7. **Footer Actions**:
      - "Submit Ticket" (Primary button). Enters busy spinner state on click.
      - "Cancel" (Secondary button, routes back to `/tickets`).
-  8. **Submission Success Screen**:
+  8. **Submission Success / Partial-Success Screen**:
      - Pale green banner with green checkmark.
      - Displays official generated Ticket Number (e.g. `TICK-20260906-0001`) in bold 20px font.
+     - **Partial-Success Handling**: If any staged attachment fails to upload after ticket creation, the ticket is KEPT (not rolled back) and an amber warning alert is displayed: *"Ticket TICK-... created. N of M attachments failed to upload — you can retry from Ticket Detail."*
      - Actions: "View Ticket Details" and "Create Another Ticket".
 
 ---
@@ -164,14 +167,15 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
     3. `Category` (plain text).
     4. `Priority` (colored badge).
     5. `Status` (`New` badge).
-    6. `Date Created` (formatted `DD/MM/YYYY HH:mm`).
-    7. `Action` ("View" button).
+    6. `Attachments` (count of active attachments, e.g. `📎 2`).
+    7. `Date Created` (formatted `DD/MM/YYYY HH:mm`).
+    8. `Action` ("View" button).
   - Hover: Row background shifts to `#F5F7F6`.
 - **Mobile Card View (<768px)**:
   - Replaces table with stacked cards.
   - Card Header: Ticket # and Status badge.
   - Card Body: Summary (bold), Category and Priority badge on one line.
-  - Card Footer: Date Created and full-width "View Details" button.
+  - Card Footer: Date Created, Attachments count (`📎 2`), and full-width "View Details" button.
 - **Pagination Bar**:
   - Displays: "Showing 1 to 10 of 24 tickets".
   - Page controls: Previous, Page Number buttons, Next.
@@ -198,7 +202,7 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
   4. **Attachments Section**:
      - **Active Attachments List**:
        - Table/cards listing active files with original filename, file type icon, size in KB/MB, and upload timestamp.
-       - Actions: "Download" button (initiates file download) and "Remove" destructive button.
+       - Actions: "Download" button (plain `<a href="/api/tickets/:id/attachments/:attachmentId/download?requesterId=[id]" download>` initiating direct file download) and "Remove" destructive button.
      - **Add Attachment Dropzone**:
        - Visible only if active attachments count < 5.
        - Disabled or replaced with callout *"Maximum 5 active attachments reached"* if active count is 5.
@@ -208,7 +212,7 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
   5. **Removal Confirmation Modal**:
      - Title: "Remove Attachment".
      - Warning: *"Are you sure you want to remove '[filename]'? This file will no longer be downloadable."*
-     - Optional input: "Reason for removal (optional, max 200 chars)".
+     - Optional input: "Reason for removal (`removedReason`, optional, max 200 chars)".
      - Actions: "Confirm Removal" (Destructive red button) and "Cancel" (Secondary button).
 
 ---
@@ -217,7 +221,7 @@ TokTickIT adopts the **Zen Green Theme**, establishing a calm, clean, profession
 
 | Viewport | Breakpoint Range | Layout Adaptations |
 |---|---|---|
-| **Desktop** | `≥ 992px` | Multi-column grid for forms and meta details. My Tickets displays as full 7-column table. Center-aligned with max-width container. |
+| **Desktop** | `≥ 992px` | Multi-column grid for forms and meta details. My Tickets displays as full 8-column table. Center-aligned with max-width container. |
 | **Tablet** | `768px – 991px` | Two-column form layouts adapt gracefully. Summary and Description retain full container width. My Tickets table enables horizontal scroll or condensed columns. |
 | **Mobile** | `< 768px` | All multi-column grids collapse to single-column stacked layout. My Tickets table transitions into responsive touch-friendly cards. Form buttons span full width. Top navigation collapses or stacks neatly. Zero horizontal page scrolling. |
 
