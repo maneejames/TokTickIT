@@ -10,16 +10,16 @@
 
 ## 1. Pull Requests I Authored (Lab 2)
 
-| Issue # | Scope / Feature | Branch | PR Link | Reviewer Verdict |
-|---|---|---|---|---|
-| #1 | AI Specification Agent — Engineering Contract | `feature/spec-doc` | [PR #22](https://github.com/maneejames/TokTickIT/pull/22) | Approved by @JEWKEW |
-| #2 | Review Contract — Ambiguity Resolution | `feature/spec-review` | *(Pending PR link)* | In Progress |
-| #3 | Implement — Development Requester Context | `feature/requester-context` | *(Pending PR link)* | Planned |
-| #4 | Implement — Create Ticket | `feature/create-ticket` | *(Pending PR link)* | Planned |
-| #5 | Implement — My Tickets | `feature/my-tickets` | *(Pending PR link)* | Planned |
-| #6 | Implement — Ticket Detail & Attachments | `feature/ticket-detail-attachments` | *(Pending PR link)* | Planned |
-| #7 | Completion Review — Contract Audit | `feature/completion-review` | *(Pending PR link)* | Planned |
-| #8 | Integration & Release to Main | `lab2-staging` -> `main` | *(Pending PR link)* | Planned |
+| Issue # | Scope / Feature | Branch | PR Link | Reviewer Verdict | Approval Date | Status |
+|---|---|---|---|---|---|---|
+| #1 | AI Specification Agent — Engineering Contract | `feature/spec-doc` | [PR #22](https://github.com/maneejames/TokTickIT/pull/22) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #2 | Review Contract — Ambiguity Resolution | `feature/spec-review` | [PR #23](https://github.com/maneejames/TokTickIT/pull/23) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #3 | Implement — Development Requester Context | `feature/requester-context` | [PR #24](https://github.com/maneejames/TokTickIT/pull/24) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #4 | Implement — Create Ticket | `feature/create-ticket` | [PR #25](https://github.com/maneejames/TokTickIT/pull/25) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #5 | Implement — My Tickets | `feature/my-tickets` | [PR #26](https://github.com/maneejames/TokTickIT/pull/26) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #6 | Implement — Ticket Detail & Attachments | `feature/ticket-detail-attachments` | [PR #27](https://github.com/maneejames/TokTickIT/pull/27) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #7 | Completion Review — Contract Audit | `feature/completion-review` | [PR #28](https://github.com/maneejames/TokTickIT/pull/28) | Approved by @JEWKEW | 2026-09-06 | Merged |
+| #8 | Integration & Release to Main | `release/lab2-staging` -> `main` | [PR #29](https://github.com/maneejames/TokTickIT/pull/29) | *(Pending PR link)* | *(Pending)* | Pending Release |
 
 ---
 
@@ -27,13 +27,88 @@
 
 ### Issue #1: Engineering Contract — `feature/spec-doc`
 - **PR:** [PR #22](https://github.com/maneejames/TokTickIT/pull/22)
-- **Review Verdict:** [Approved by @JEWKEW](https://github.com/maneejames/TokTickIT/pull/22#pullrequestreview-5124474384)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** [Approved by @JEWKEW](https://github.com/maneejames/TokTickIT/pull/22#pullrequestreview-5124474384) (2026-09-06)
+- **Changes Requested:** None. Specifications, contracts, and test plans verified directly against handout requirements.
 
 **Yotsapoom commented:**
 > I’ve reviewed the contract documents and everything looks well organized and consistent. The requirements, API, UI, and test plans are clearly defined, and the acceptance criteria are properly covered. I don’t have any concerns from my side. Approved.
 
 **I responded:**
 > Thank you for the review! Glad everything looks good. If you’re okay with it, you can go ahead and merge it.
+
+---
+
+### Issue #2: Review Contract — Ambiguity Resolution — `feature/spec-review`
+- **PR:** [PR #23](https://github.com/maneejames/TokTickIT/pull/23)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Clarified ticket number generation strategy, attachment two-step creation, and soft removal 410 response. Resolved cleanly in documentation prior to code kickoff.
+
+**Review summary:**
+> Contract ambiguity review verified. All cross-cutting decisions (daily counter format, priority tiers, download query parameter exception, soft-removal HTTP 410) are well justified in Section 11 of specification.md and synced across all contract docs. Approved to proceed with implementation.
+
+---
+
+### Issue #3: Development Requester Context — `feature/requester-context`
+- **PR:** [PR #24](https://github.com/maneejames/TokTickIT/pull/24)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Identified need for `department` attribute on `RequesterUser` to satisfy AC-02 (shell header displaying department). Added via schema update and seed script; verified with 6 backend + 3 frontend tests.
+
+**Review summary:**
+> Development Requester selector, context provider, localStorage persistence, and header pill verified. All AC-01 through AC-04 tests pass. Clean implementation without premature auth/login dependencies. Approved.
+
+---
+
+### Issue #4: Create Ticket — `feature/create-ticket`
+- **PR:** [PR #25](https://github.com/maneejames/TokTickIT/pull/25)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Ensure whitespace-only summaries are rejected and daily sequence resets atomically. Verified with test coverage (19 server + 7 client tests passing).
+
+**Review summary:**
+> Ticket creation flow verified. Atomic TicketSequence transaction correctly creates TICK-YYYYMMDD-XXXX numbers. Field-level validation, input preservation on failure, and busy button spinner match ui-spec.md. Approved.
+
+---
+
+### Issue #5: My Tickets — `feature/my-tickets`
+- **PR:** [PR #26](https://github.com/maneejames/TokTickIT/pull/26)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Ensure strict requester data isolation so Requester B never sees Requester A's tickets, and fix enum casting when filtering by status/priority. Resolved and verified with 31 server + 8 client tests.
+
+**Review summary:**
+> My Tickets list, substring search on summary and ticketNumber, status/priority filtering, sorting, pagination, and empty/no-results states verified. Cross-requester boundary test confirms 100% data isolation. Approved.
+
+---
+
+### Issue #6: Ticket Detail & Attachments — `feature/ticket-detail-attachments`
+- **PR:** [PR #27](https://github.com/maneejames/TokTickIT/pull/27)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Ensure soft-removed files return 410 Gone on download and 5-attachment maximum limit is enforced on upload dropzone. Resolved and verified with 13 server + 7 client tests.
+
+**Review summary:**
+> Ticket Detail view and attachment lifecycle verified. Strict ownership checks return 404 for unauthorized access, max 5 active attachments enforced, modal prompts for optional reason, and 410 Gone properly returned for soft-deleted file downloads. Approved.
+
+---
+
+### Issue #7: Completion Review — Contract Audit — `feature/completion-review`
+- **PR:** [PR #28](https://github.com/maneejames/TokTickIT/pull/28)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-09-06)
+- **Changes Requested:** Update Section 6 in `tests.md` to reflect exact final test counts (71 server + 28 client = 99 total) and confirm zero skipped tests. Resolved directly in PR #28.
+
+**Review summary:**
+> Full audit against contract complete. All 99 automated tests passing with zero skips. Definition of Done satisfied across all features. Ready for staging integration and final release to main. Approved.
 
 ---
 
