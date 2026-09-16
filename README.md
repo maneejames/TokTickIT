@@ -158,11 +158,9 @@ npm run dev
 
 ## 🧪 Testing & Verification Guide
 
-### 1. Feature 3: Database & Seed Verification
+### 1. Lab 1: Category & Health Baseline (`docs/lab-01/`)
 
-To verify the database preparation and seed implementation (Feature 3):
-
-#### A. Verify Migration & Table Creation
+#### A. Database & Seed Verification
 Ensure the PostgreSQL container is running and migrations have been applied:
 ```bash
 # Start Docker container
@@ -173,123 +171,123 @@ cd server
 npm run prisma:migrate
 ```
 
-#### B. Verify Seed & Idempotency
-Run the seed command twice in succession to confirm that it inserts all 4 categories without errors or duplicate row violations:
+Verify seed idempotency by running the seed script twice:
 ```bash
 cd server
 npm run prisma:seed
 npm run prisma:seed
 ```
-Expected output:
-```text
-> toktickit-server@1.0.0 prisma:seed
-> tsx prisma/seed.ts
 
-Successfully seeded 4 categories.
-```
-
-#### C. Inspect Database Records directly
-You can verify the records using either **Prisma Studio** or **Docker CLI**:
-
-**Option 1: Using PowerShell / Docker CLI**
-```powershell
-docker exec -i toktickit-postgres psql -U toktickit -d toktickit -c 'SELECT id, name, "createdAt" FROM "Category" ORDER BY id ASC;'
-```
-*(Or pipe via standard input:)*
-```powershell
-"SELECT id, name, ""createdAt"" FROM ""Category"" ORDER BY id ASC;" | docker exec -i toktickit-postgres psql -U toktickit -d toktickit
-```
-
-**Option 2: Using Prisma Studio (GUI)**
-```bash
-cd server
-npx prisma studio
-```
-> Opens a web interface at `http://localhost:5555` to view and inspect all database tables and rows visually.
-
-Expected terminal output for Option 1:
-```text
- id |        name        |        createdAt        
-----+--------------------+-------------------------
-  1 | Account and Access | 2026-08-16 08:44:39.853
-  2 | Hardware           | 2026-08-16 08:44:39.866
-  3 | Software           | 2026-08-16 08:44:39.872
-  4 | Network            | 2026-08-16 08:44:39.878
-(4 rows)
-```
-
----
-
-### 2. Lab 1 Test Suite Matrix (`docs/lab-01/tests.md`)
-
-The test suites cover 5 specific scenarios across backend and frontend:
-
+#### B. Lab 1 Test Suite Matrix (`docs/lab-01/tests.md`)
 | # | Layer / Tool | Test Description | Test File Location |
-|---|--------------|------------------|-------------------|
+|---|---|---|---|
 | 1 | Backend (Supertest) | `GET /api/health` returns `200` with `status: "ok"` | `server/tests/lab-01/health.test.ts` |
 | 2 | Backend (Supertest) | `GET /api/categories` returns 4 seeded categories in ID order | `server/tests/lab-01/categories.test.ts` |
 | 3 | Frontend (Vitest + RTL) | Heading "TokTickIT" renders | `client/tests/lab-01/App.test.tsx` |
 | 4 | Frontend (Vitest + RTL) | Success state shows "Online" + category list | `client/tests/lab-01/App.test.tsx` |
 | 5 | Frontend (Vitest + RTL) | Error state shows "Offline" + error message | `client/tests/lab-01/App.test.tsx` |
 
-#### Running Backend Tests (Supertest)
+**Run Lab 1 Tests:**
 ```bash
-cd server
-npm test
+# Backend tests
+cd server && npm test -- tests/lab-01
+
+# Frontend tests
+cd client && npm test -- tests/lab-01
 ```
 
-#### Running Frontend Tests (Vitest + RTL)
+---
+
+### 2. Lab 2: Requester-Facing IT Ticketing MVP (`docs/lab-02/`)
+
+Lab 2 delivered the complete Requester-facing IT Ticketing MVP under the **Zen Green Theme**:
+
+#### A. Key Capabilities
+1. **Development Requester Selector ("Test Login")**:
+   - Seeded active and inactive requesters with local storage persistence and shell header indication.
+   - Strict rejection of inactive requesters (`403 Forbidden`).
+2. **Create Ticket Workflow**:
+   - Classification dropdowns (Category, Related System), Requested Priority (`LOW`, `MEDIUM`, `HIGH`).
+   - Atomic sequential Ticket Number generation (`TICK-YYYYMMDD-XXXX`) via dedicated `TicketSequence` table.
+   - Initial status set to `New`.
+   - File attachment dropzone (max 5 active files, max 5 MB per file, allowed: JPG, PNG, WEBP, PDF).
+3. **My Tickets (Requester Ticket List)**:
+   - Strict requester ownership data isolation (Requester A cannot see Requester B's tickets).
+   - Search across summary and ticket number, filtering by category and status.
+   - Sorting and pagination controls.
+   - Responsive layout: desktop 8-column table (≥992px) and mobile stacked cards (<768px).
+4. **Ticket Detail & Attachment Lifecycle**:
+   - Read-only formatted ticket detail view.
+   - Secure active attachment download via header or `?requesterId=`.
+   - Soft-removal modal recording `removedReason`, preventing download (`410 Gone`) while preserving metadata.
+
+#### B. Lab 2 Test Suite Matrix (`docs/lab-02/tests.md`)
+| Test Suite Group | Test Layer | Coverage / Scope | Test File Location |
+|---|---|---|---|
+| Requesters API | Backend (Supertest) | Active/inactive requesters, header auth validation | `server/tests/lab-02/requesters.api.test.ts` |
+| Reference Data API | Backend (Supertest) | Categories and related systems listing | `server/tests/lab-02/reference-data.api.test.ts` |
+| Create Ticket API | Backend (Supertest) | Form validation, atomic `TICK-YYYYMMDD-XXXX` sequence | `server/tests/lab-02/create-ticket.api.test.ts` |
+| My Tickets API | Backend (Supertest) | Search, filtering, sorting, pagination, ownership isolation | `server/tests/lab-02/my-tickets.api.test.ts` |
+| Ticket Detail API | Backend (Supertest) | Detail retrieval, 404 unauthorized isolation | `server/tests/lab-02/ticket-detail.api.test.ts` |
+| Attachments API | Backend (Supertest) | Upload, 5 MB/type limits, download, soft-remove (410) | `server/tests/lab-02/attachments.api.test.ts` |
+| Requester Select UI | Frontend (RTL) | Dropdown selection, local storage, change requester | `client/tests/lab-02/RequesterSelect.test.tsx` |
+| Create Ticket UI | Frontend (RTL) | Inline field validation, busy states, failure resilience | `client/tests/lab-02/CreateTicket.test.tsx` |
+| My Tickets UI | Frontend (RTL) | Responsive table/cards, search toolbar, empty states | `client/tests/lab-02/MyTickets.test.tsx` |
+| Ticket Detail UI | Frontend (RTL) | Read-only details, attachment removal modal | `client/tests/lab-02/RequesterTicketDetail.test.tsx` |
+| Requester Journey | E2E (Playwright) | Full flow: select -> create -> list -> detail -> attachment | `e2e/lab-02/requester-ticket-flow.spec.ts` |
+
+**Run Lab 2 Tests:**
 ```bash
-cd client
-npm test
+# Backend tests
+cd server && npm test -- tests/lab-02
+
+# Frontend tests
+cd client && npm test -- tests/lab-02
+
+# Playwright E2E
+npx playwright test e2e/lab-02
 ```
 
-#### Manual Testing in Browser
-1. Ensure the database is running: `docker compose up -d`
-2. Start both services:
-   - Backend: `cd server && npm run dev`
-   - Frontend: `cd client && npm run dev`
-3. Open `http://localhost:5173`.
+---
 
-#### UI State Demonstrations & Behavior:
+### 3. Lab 3: Users, Roles, IT Staff Ticketing, and Admin Screens (`docs/lab-03/`)
 
-**1. Initial State (Idle):**
-```text
-┌──────────────────────────────────────────────┐
-│ TokTickIT IT Service Desk                    │
-│                                              │
-│ [ Check System ]                             │
-└──────────────────────────────────────────────┘
-```
+Lab 3 replaces the development requester selector with authentic credentials, server-side RBAC, IT Staff workflows, and administrator management:
 
-**2. Success Case after clicking [Check System] (API & Database Online):**
-```text
-┌──────────────────────────────────────────────┐
-│ TokTickIT IT Service Desk                    │
-│                                              │
-│ [ Check System ]                             │
-│                                              │
-│ System Status: Online                        │
-│ TokTickIT API is operational and healthy.    │
-│                                              │
-│ Supported Request Categories                 │
-│ 1. Account and Access                        │
-│ 2. Hardware                                  │
-│ 3. Software                                  │
-│ 4. Network                                   │
-└──────────────────────────────────────────────┘
-```
+#### A. Key Capabilities
+1. **Authentication & Session**: Email/password login, bcrypt hashing, HTTP-only secure cookie session (`toktickit_session`), and current user info (`GET /api/auth/me`).
+2. **Mandatory Password Change**: Users with initial passwords must change them on first login before accessing normal app routes.
+3. **Server-Side Authorization**: Backend guards for Requester, IT Staff, and Administrator. Client `requesterId` strictly ignored.
+4. **Requester Regression & Additions**: Full Lab 2 continuity plus Public Comments and "Problem Appears Resolved" toggle.
+5. **IT Staff Ticket Queue**: Search, filtering by status/priority/category, sorting, pagination, desktop table + mobile cards.
+6. **IT Staff Ticket Operations**: Claim/reassign ownership, IT Priority management, status transition matrix enforcement, Public Comments, and private Internal Notes.
+7. **Administrator User Management**: Minimalist screen to list/search/filter users, create user with initial password, edit account/role, reset initial password, and safety checks (no self-deactivation, no removing last active admin).
 
-**3. Failure Case after clicking [Check System] (e.g., when DB server or API is not started):**
-```text
-┌──────────────────────────────────────────────┐
-│ TokTickIT IT Service Desk                    │
-│                                              │
-│ [ Check System ]                             │
-│                                              │
-│ System Status: Offline                       │
-│ Unable to connect to TokTickIT API           │
-└──────────────────────────────────────────────┘
+#### B. Lab 3 Test Suite Matrix (`docs/lab-03/tests.md`)
+| Test Suite Group | Test Layer | Coverage / Scope | Test File Location |
+|---|---|---|---|
+| Authentication API | Backend (Supertest) | Login, logout, session cookie, password change, inactive check | `server/tests/lab-03/auth.api.test.ts` |
+| Authorization API | Backend (Supertest) | RBAC guards, ownership derivation, 401 vs. 403 vs. 404 | `server/tests/lab-03/authorization.api.test.ts` |
+| Staff Queue API | Backend (Supertest) | Queue query, search, filtering, pagination, sorting | `server/tests/lab-03/staff-queue.api.test.ts` |
+| Staff Detail API | Backend (Supertest) | Claim, reassign, IT priority, status transition matrix | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| Comments & Notes API | Backend (Supertest) | Public comments (requester+staff), Internal notes (staff only) | `server/tests/lab-03/comments-notes.api.test.ts` |
+| Admin Users API | Backend (Supertest) | User list, create, edit, reset password, admin safety rules | `server/tests/lab-03/users-admin.api.test.ts` |
+| Auth & Password UI | Frontend (RTL) | Login form, validation, mandatory ChangePassword barrier | `client/tests/lab-03/Login.test.tsx`<br>`client/tests/lab-03/ChangePassword.test.tsx` |
+| Staff Queue UI | Frontend (RTL) | Desktop queue table, mobile cards, search toolbar, badges | `client/tests/lab-03/StaffTicketQueue.test.tsx` |
+| Staff Detail UI | Frontend (RTL) | Claim/reassign controls, IT priority, comments vs. notes | `client/tests/lab-03/StaffTicketDetail.test.tsx` |
+| Admin Users UI | Frontend (RTL) | User table, Create/Edit modals, safety checks | `client/tests/lab-03/UserManagement.test.tsx` |
+| Acceptance Journeys | E2E (Playwright) | Auth flow, first-login password change, staff ticket flow, admin | `e2e/lab-03/authentication.spec.ts`<br>`e2e/lab-03/staff-ticket-flow.spec.ts`<br>`e2e/lab-03/user-administration.spec.ts` |
+
+**Run Lab 3 Tests:**
+```bash
+# Backend tests
+cd server && npm test -- tests/lab-03
+
+# Frontend tests
+cd client && npm test -- tests/lab-03
+
+# Playwright E2E
+npx playwright test e2e/lab-03
 ```
 
 ---
@@ -301,7 +299,7 @@ npm test
 - `npm run build`: Compiles TypeScript to JavaScript in `dist/`.
 - `npm start`: Runs the compiled production server.
 - `npm run prisma:migrate`: Runs Prisma migrations against the database.
-- `npm run prisma:seed`: Seeds the database with default category records.
+- `npm run prisma:seed`: Seeds the database with default records.
 - `npx prisma studio` (or `npm run prisma:studio`): Launches the visual database management GUI.
 - `npm test`: Runs backend test suites with Vitest and Supertest.
 
@@ -310,4 +308,37 @@ npm test
 - `npm run build`: Type-checks and builds the frontend bundle for production.
 - `npm run preview`: Previews the production build locally.
 - `npm test`: Runs client test suites with Vitest and React Testing Library.
+
+---
+
+## 🌿 Lab 3 Branching & Staging Workflow
+
+TokTickIT follows a strict staged integration workflow for Lab 3 to ensure production stability, peer review integrity, and verifiable trace evidence before changes reach `main`:
+
+```text
+main
+  └── lab3-staging
+        ├── feature/lab3-spec-doc
+        ├── feature/lab3-data-model-migration-seed
+        ├── feature/lab3-auth-foundation
+        ├── feature/lab3-server-authorization
+        ├── feature/lab3-requester-regression-comments
+        ├── feature/lab3-staff-queue
+        ├── feature/lab3-staff-ticket-detail
+        ├── feature/lab3-admin-user-management
+        └── chore/lab3-completion-review
+```
+
+### Workflow Rules:
+1. **Never commit directly to `main` or `lab3-staging`**: All development work occurs in dedicated feature branches branched off `lab3-staging`.
+2. **Feature Branch → `lab3-staging`**:
+   - Each feature branch addresses a specific GitHub Issue (e.g., `feature/lab3-spec-doc` for Issue #1).
+   - Once implementation, automated tests, and lint checks pass, a Pull Request is opened against `lab3-staging`.
+   - Peer review, human approval, and test verification are documented in `docs/lab-03/reviewer.md`.
+3. **Completion Review & Audit on `lab3-staging`**:
+   - Full regression runs (backend unit/API, frontend RTL, Playwright E2E) and contract audits are performed on `lab3-staging`.
+   - Screenshots across viewports are captured into `artifacts/lab-03/screenshots/`.
+4. **Release PR (`lab3-staging` → `main`)**:
+   - Once all criteria of the Engineering Contract and Definition of Done are satisfied, a final release PR merges `lab3-staging` into `main`.
+
 
