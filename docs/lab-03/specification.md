@@ -73,8 +73,8 @@ Security must be enforced strictly on the backend: hiding or disabling frontend 
 - **FR-14 (Ownership Claim and Reassignment)**: IT Staff shall be able to claim unassigned tickets or reassign tickets to any active IT Staff or Administrator account.
 - **FR-15 (IT Priority Management)**: IT Staff shall be able to update the IT Priority (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) of any ticket.
 - **FR-16 (Status Lifecycle Transitions)**: IT Staff shall be able to update ticket status strictly adhering to the approved Ticket Status Transition Matrix.
-- **FR-17 (Staff Public Comments & Internal Notes)**: IT Staff shall be able to post Public Comments (visible to Requesters) and private Internal Notes (strictly forbidden to Requesters) on any ticket.
-- **FR-18 (Internal Note Secrecy)**: The system shall strictly prevent Requesters from reading or creating Internal Notes under any condition (returning `403 Forbidden`).
+- **FR-17 (Staff Public Comments & Internal Notes)**: IT Staff shall be able to post Public Comments (visible to Requesters) and private Internal Notes (strictly forbidden to Requesters and Administrators) on any ticket.
+- **FR-18 (Internal Note Secrecy)**: The system shall strictly prevent Requesters and Administrators from reading or creating Internal Notes under any condition (returning `403 Forbidden`).
 
 ### 4.5 Administrator User Management
 - **FR-19 (User Listing & Search)**: Administrators shall be able to list all user accounts with substring search by name or email, and optional filtering by role.
@@ -94,14 +94,14 @@ Security must be enforced strictly on the backend: hiding or disabling frontend 
 | **BR-01** | Only an active user (`isActive: true`) with valid credentials may authenticate. |
 | **BR-02** | A user with `mustChangePassword: true` cannot enter normal application screens or call operational endpoints until a new valid password meeting complexity rules is saved. |
 | **BR-03** | Authenticated session identity, not any client-supplied `requesterId`, determines ownership and authorization for all Requester operations. |
-| **BR-04** | Public Comments are visible to Requester (owner), IT Staff, and Administrator. Internal Notes are visible ONLY to IT Staff and Administrator; access by Requesters is strictly rejected (`403 Forbidden`). |
+| **BR-04** | Public Comments are visible to Requester (owner) and IT Staff. Internal Notes are visible ONLY to IT Staff; access by Requesters and Administrators is strictly rejected (`403 Forbidden`). |
 | **BR-05** | A Requester may indicate that a problem appears resolved (`isRequesterResolved: true`), but cannot formally change the Ticket status to `Resolved` or `Closed`. Only IT Staff may update formal ticket status. |
 | **BR-06** | Authentication failures (incorrect password or unknown email) must return an identical generic error (`401 Unauthorized: Invalid email or password`) to prevent account enumeration. |
 | **BR-07** | Passwords must never be stored in plaintext. Passwords must be hashed using `bcrypt` (work factor ≥ 10). |
 | **BR-08** | New passwords (chosen on first-login change or set as initial passwords) must meet complexity rules: min 8 characters, at least one uppercase letter, at least one lowercase letter, at least one digit, and at least one special character (`[!@#$%^&*(),.?":{}|<>]`). |
 | **BR-09** | Logging out must immediately destroy the session on the server and clear the session cookie on the client. |
-| **BR-10** | If an active user account is deactivated by an Administrator, any existing session tokens for that user become invalid on their next request. |
-| **BR-11** | The `GET /api/auth/me` endpoint must re-verify user state against the database on each invocation to ensure immediate role/activation revocation. |
+| **BR-10** | If an active user account is deactivated by an Administrator or flagged for password reset, any existing session tokens for that user become invalid on their next request via database re-validation. |
+| **BR-11** | Session validation middleware must check `isActive` and `mustChangePassword` status against the database on every authenticated request to guarantee immediate role, status, or activation revocation. |
 | **BR-12** | A Ticket may have at most one primary Ticket Owner (`ownerId`), who must be an active IT Staff or Administrator. Tickets may initially be unassigned (`ownerId: null`). |
 | **BR-13** | Requested Priority is selected by the Requester at creation and is immutable thereafter. |
 | **BR-14** | IT Priority defaults to Requested Priority upon ticket creation. It can subsequently be updated only by IT Staff or Administrator. |
@@ -141,7 +141,7 @@ Security must be enforced strictly on the backend: hiding or disabling frontend 
 | `PATCH /api/staff/tickets/:id/priority` | ❌ (401) | ❌ (403) | ✅ | ❌ (403) |
 | `PATCH /api/staff/tickets/:id/status` | ❌ (401) | ❌ (403) | ✅ | ❌ (403) |
 | `POST /api/tickets/:id/notes` (Internal Note) | ❌ (401) | ❌ (403) | ✅ | ❌ (403) |
-| `GET /api/tickets/:id/notes` | ❌ (401) | ❌ (403) | ✅ | ✅ (Audit view) |
+| `GET /api/tickets/:id/notes` | ❌ (401) | ❌ (403) | ✅ | ❌ (403) |
 | `GET /api/admin/users` (List/Search Users) | ❌ (401) | ❌ (403) | ❌ (403) | ✅ |
 | `POST /api/admin/users` (Create User) | ❌ (401) | ❌ (403) | ❌ (403) | ✅ |
 | `PATCH /api/admin/users/:id` (Edit User) | ❌ (401) | ❌ (403) | ❌ (403) | ✅ |
@@ -151,26 +151,26 @@ Security must be enforced strictly on the backend: hiding or disabling frontend 
 
 ## 7. Ticket Status Transition Matrix
 
-The required ticket statuses are: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, and `Cancelled`.
+The required ticket statuses are defined in the database and API using `SCREAMING_SNAKE_CASE` (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, `CANCELLED`) and rendered in the UI using Title Case (`New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, `Cancelled`).
 
 | Current Status | Permitted Next Status | Allowed Roles | Business Meaning & Rules |
 |---|---|:---:|---|
-| **New** | `Open` | IT Staff | IT Staff claims or begins review of the new ticket. |
-| **New** | `Cancelled` | IT Staff | Ticket was submitted in error or deemed invalid prior to triage. |
-| **Open** | `In Progress` | IT Staff | Active work or troubleshooting is underway. |
-| **Open** | `Cancelled` | IT Staff | Ticket cancelled after review. |
-| **In Progress** | `Waiting for Requester` | IT Staff | Staff has requested additional information or testing from Requester. |
-| **In Progress** | `Resolved` | IT Staff | Technical remedy implemented and verified by IT Staff. |
-| **In Progress** | `Cancelled` | IT Staff | Issue abandoned or superseded. |
-| **Waiting for Requester** | `In Progress` | IT Staff | Requester provided requested feedback or comments. |
-| **Waiting for Requester** | `Resolved` | IT Staff | Requester indicated problem resolved or issue verified. |
-| **Waiting for Requester** | `Cancelled` | IT Staff | No response or ticket withdrawn. |
-| **Resolved** | `Closed` | IT Staff | Formal ticket closure following confirmation period. |
-| **Resolved** | `Reopened` | IT Staff | Requester indicates the issue persists or recurred. |
-| **Closed** | `Reopened` | IT Staff | Closed ticket re-activated due to recurrence. |
-| **Cancelled** | *(Terminal)* | — | No further transitions permitted. |
+| **NEW** (`New`) | `OPEN` (`Open`) | IT Staff | IT Staff claims or begins review of the new ticket. |
+| **NEW** (`New`) | `CANCELLED` (`Cancelled`) | IT Staff | Ticket was submitted in error or deemed invalid prior to triage. |
+| **OPEN** (`Open`) | `IN_PROGRESS` (`In Progress`) | IT Staff | Active work or troubleshooting is underway. |
+| **OPEN** (`Open`) | `CANCELLED` (`Cancelled`) | IT Staff | Ticket cancelled after review. |
+| **IN_PROGRESS** (`In Progress`) | `WAITING_FOR_REQUESTER` (`Waiting for Requester`) | IT Staff | Staff has requested additional information or testing from Requester. |
+| **IN_PROGRESS** (`In Progress`) | `RESOLVED` (`Resolved`) | IT Staff | Technical remedy implemented and verified by IT Staff. |
+| **IN_PROGRESS** (`In Progress`) | `CANCELLED` (`Cancelled`) | IT Staff | Issue abandoned or superseded. |
+| **WAITING_FOR_REQUESTER** (`Waiting for Requester`) | `IN_PROGRESS` (`In Progress`) | IT Staff | Requester provided requested feedback or comments. |
+| **WAITING_FOR_REQUESTER** (`Waiting for Requester`) | `RESOLVED` (`Resolved`) | IT Staff | Requester indicated problem resolved or issue verified. |
+| **WAITING_FOR_REQUESTER** (`Waiting for Requester`) | `CANCELLED` (`Cancelled`) | IT Staff | No response or ticket withdrawn. |
+| **RESOLVED** (`Resolved`) | `CLOSED` (`Closed`) | IT Staff | Formal ticket closure following confirmation period. |
+| **RESOLVED** (`Resolved`) | `REOPENED` (`Reopened`) | IT Staff | Requester indicates the issue persists or recurred. |
+| **CLOSED** (`Closed`) | `REOPENED` (`Reopened`) | IT Staff | Closed ticket re-activated due to recurrence. |
+| **CANCELLED** (`Cancelled`) | *(Terminal)* | — | No further transitions permitted. |
 
-*Note*: Any transition attempt not explicitly defined in the table above is rejected with `400 Bad Request`. Requesters cannot execute status transitions.
+*Note*: Any transition attempt not explicitly defined in the table above is rejected with `400 Bad Request`. Requesters and Administrators cannot execute status transitions.
 
 ---
 
@@ -212,27 +212,29 @@ The required ticket statuses are: `New`, `Open`, `In Progress`, `Waiting for Req
    - `RequesterUser` (Lab 2 temporary model) is deleted post-migration.
 
 ### 8.2 Migration Plan
-1. Generate Prisma migration creating `User`, `PublicComment`, and `InternalNote` tables.
-2. Data migration step: migrate all existing `RequesterUser` records into `User` with role `REQUESTER`, generating bcrypt hashes for local-dev password `Password123!` and setting `mustChangePassword = true`.
-3. Update `Ticket.requesterId` foreign keys to reference `User.id`.
-4. Initialize `Ticket.itPriority` = `Ticket.requestedPriority`.
-5. Remove `RequesterUser` model.
+The migration executes in the following sequence without data loss:
+1. **Create User table**: Create the `User` table (with enums `Role`, `TicketStatus`, and `Priority`) and tables `PublicComment`, `InternalNote`.
+2. **Copy RequesterUser rows**: Migrate all existing `RequesterUser` records into `User` with matching `id`, name, email, `role = 'REQUESTER'`, `isActive = true`, `mustChangePassword = true`, and `passwordHash` generated via bcrypt for initial seed password `Password123!`.
+3. **Repoint Foreign Keys & Columns**: Repoint `Ticket.requesterId` foreign key to `User.id`, add nullable `Ticket.ownerId` pointing to `User.id`, add `Ticket.isRequesterResolved` (default `false`), and initialize `Ticket.itPriority` to match `Ticket.requestedPriority`.
+4. **Drop RequesterUser**: Drop the deprecated `RequesterUser` model and table once constraints and dependencies are validated.
 
 ### 8.3 Idempotent Seed Data (`server/prisma/seed.ts`)
+All seeded accounts are created with standard local development password: `Password123!`.
 - **Administrators**:
-  - `admin@kmutt.ac.th` (Active, name: "Central Administrator")
+  - `admin@kmutt.ac.th` (Active, name: "Central Administrator", `mustChangePassword: false`)
 - **IT Staff**:
-  - `staff.witchai@kmutt.ac.th` (Active, name: "Witchai Tech")
-  - `staff.kamon@kmutt.ac.th` (Active, name: "Kamon Support")
-  - `staff.naree@kmutt.ac.th` (Active, name: "Naree Network")
-  - `staff.inactive@kmutt.ac.th` (Inactive, name: "Former Staff")
+  - `staff.witchai@kmutt.ac.th` (Active, name: "Witchai Tech", `mustChangePassword: false`)
+  - `staff.kamon@kmutt.ac.th` (Active, name: "Kamon Support", `mustChangePassword: false`)
+  - `staff.naree@kmutt.ac.th` (Active, name: "Naree Network", `mustChangePassword: false`)
+  - `staff.inactive@kmutt.ac.th` (Inactive, name: "Former Staff", `mustChangePassword: false`)
 - **Requesters**:
-  - `somchai.jai@kmutt.ac.th` (Active, name: "Somchai Jaidee")
-  - `suda.rak@kmutt.ac.th` (Active, name: "Suda Rakdee")
-  - `wichai.mee@kmutt.ac.th` (Active, name: "Wichai Meesook")
-  - `anong.cha@kmutt.ac.th` (Active, name: "Anong Chalong")
-  - `inactive.req@kmutt.ac.th` (Inactive, name: "Inactive Requester")
-- **Tickets**: Realistic ticket distributions across statuses (`New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`), priorities, and owners (assigned vs. unassigned), with initial Public Comments and Internal Notes.
+  - `somchai.jai@kmutt.ac.th` (Active, name: "Somchai Jaidee", `mustChangePassword: false`)
+  - `suda.rak@kmutt.ac.th` (Active, name: "Suda Rakdee", `mustChangePassword: false`)
+  - `wichai.mee@kmutt.ac.th` (Active, name: "Wichai Meesook", `mustChangePassword: false`)
+  - `anong.cha@kmutt.ac.th` (Active, name: "Anong Chalong", `mustChangePassword: false`)
+  - `inactive.req@kmutt.ac.th` (Inactive, name: "Inactive Requester", `mustChangePassword: false`)
+  - `temp.req@kmutt.ac.th` (Active, name: "Temporary Requester", `mustChangePassword: true`)
+- **Tickets**: Realistic ticket distributions across statuses (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`), priorities, and owners (assigned vs. unassigned), with initial Public Comments and Internal Notes.
 
 ---
 
@@ -259,7 +261,7 @@ The required ticket statuses are: `New`, `Open`, `In Progress`, `Waiting for Req
 | **AC-17** | An IT Staff user | IT Staff attempts an invalid status transition (e.g. `NEW` → `CLOSED`) | Request returns 400 Bad Request with error stating invalid transition. |
 | **AC-18** | An IT Staff user | IT Staff executes a valid status transition (e.g. `NEW` → `OPEN`) | Ticket status updates in database and reflects on Ticket Detail and Queue. |
 | **AC-19** | A Requester or IT Staff user | User posts a valid Public Comment via `POST /api/tickets/:id/comments` | Comment is saved, author name and timestamp are populated from session, and comment is visible to Requester and IT Staff. |
-| **AC-20** | An IT Staff user | IT Staff posts an Internal Note via `POST /api/tickets/:id/notes` | Note is saved, author name and timestamp are recorded, and note is visible only to IT Staff and Admin. |
+| **AC-20** | An IT Staff user | IT Staff posts an Internal Note via `POST /api/tickets/:id/notes` | Note is saved, author name and timestamp are recorded, and note is visible only to IT Staff. |
 | **AC-21** | A Requester user | Requester attempts to fetch or post Internal Notes (`/api/tickets/:id/notes`) | Request returns 403 Forbidden; no note content is returned. |
 | **AC-22** | A user posting empty or whitespace-only Public Comment or Internal Note | Form submission occurs | Backend returns 400 Bad Request validation error; UI displays inline error message. |
 | **AC-23** | A Requester viewing their own ticket | Requester toggles "Problem Appears Resolved" via `PATCH /api/tickets/:id/resolve-indicator` | `isRequesterResolved` updates to true/false; formal `status` remains unchanged. |
@@ -272,12 +274,13 @@ The required ticket statuses are: `New`, `Open`, `In Progress`, `Waiting for Req
 | **AC-30** | An Administrator user | Admin resets a user's initial password via `POST /api/admin/users/:id/reset-password` | Password hash is updated, `mustChangePassword` is set to true, returns 200 OK. Next login forces password change. |
 | **AC-31** | A non-Administrator (Requester or IT Staff) | User attempts to access any `/api/admin/users` endpoint | Backend returns 403 Forbidden. |
 | **AC-32** | Seed verification | `npm run prisma:seed` executed twice consecutively | Script succeeds idempotently without duplicate row errors or constraint violations. |
+| **AC-33** | An Administrator user | Administrator attempts to fetch or post Internal Notes (`/api/tickets/:id/notes`) or Public Comments (`/api/tickets/:id/comments`) | Request returns 403 Forbidden; ticket operations remain strictly prohibited for Administrators. |
 
 ---
 
 ## 10. Definition of Done (DoD)
 
-- [ ] **Contract Alignment**: Every FR (FR-01–FR-25), BR (BR-01–BR-25), and AC (AC-01–AC-32) is fully implemented.
+- [ ] **Contract Alignment**: Every FR (FR-01–FR-25), BR (BR-01–BR-25), and AC (AC-01–AC-33) is fully implemented.
 - [ ] **Test Traceability**: 100% of Acceptance Criteria map to concrete, automated tests in `docs/lab-03/tests.md`.
 - [ ] **No Regression**: All Lab 2 tests pass under the authenticated user model without the Dev Requester selector.
 - [ ] **Security Integrity**: Passwords never stored/logged in plaintext. Role and ownership authorization enforced server-side.

@@ -53,6 +53,17 @@ If the current user has `mustChangePassword: true`:
 - The navigation bar renders in restricted mode (no navigation links, only brand and Logout button).
 - The main content area is locked to the **Change Password Screen**. Any attempted navigation to `/tickets`, `/queue`, or `/admin` is redirected back to `/change-password`.
 
+### 2.3 Route Guards & Auth Bootstrapping (`useAuth`)
+The application client implements an auth bootstrap and routing guard wrapper (`useAuth` context / provider):
+1. **Initial Load**: On application launch, `useAuth` calls `GET /api/auth/me`. While verifying, a full-page Zen Green loading spinner/skeleton is shown.
+2. **Unauthenticated (401)**: If `GET /api/auth/me` returns `401 Unauthorized` or fails, client clears local user state and immediately redirects to `/login`.
+3. **Mandatory Password Change**: If `mustChangePassword: true`, the user is forced and redirected to `/change-password`. All other routes (`/tickets`, `/staff/queue`, `/staff/tickets/:id`, `/admin/users`) are blocked until password change succeeds.
+4. **Role Boundary Redirection**:
+   - Requesters attempting to access `/staff/*` or `/admin/*` are redirected to `/tickets` with a forbidden toast/notice.
+   - IT Staff accessing `/admin/*` or `/tickets` are redirected to `/staff/queue`.
+   - Administrators accessing `/tickets` or `/staff/*` are redirected to `/admin/users`.
+5. **Logout**: Triggering logout calls `POST /api/auth/logout`, clears user context, and redirects immediately to `/login`.
+
 ---
 
 ## 3. Screen Specifications
@@ -127,11 +138,11 @@ If the current user has `mustChangePassword: true`:
     4. **Category**: Category name
     5. **Requested Priority**: Badge (`LOW`, `MEDIUM`, `HIGH`)
     6. **IT Priority**: Editable or styled badge (`LOW`, `MEDIUM`, `HIGH`, `URGENT`)
-    7. **Status**: Zen Green status pill
+    7. **Status**: Zen Green status pill (`New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, `Cancelled`). If `isRequesterResolved: true`, also display a prominent pale green badge: *"Requester Resolved"*.
     8. **Owner**: Displays assigned IT Staff name or gray pill *"Unassigned"*
     9. **Actions**: "Open Ticket" link/button
 - **Queue Card List (Mobile < 768px)**:
-  - Stacked card per ticket showing Ticket #, Status badge, IT Priority badge, Summary, Owner pill, and "Open" tap area.
+  - Stacked card per ticket showing Ticket #, Status badge (plus *"Requester Resolved"* pill when `isRequesterResolved: true`), IT Priority badge, Summary, Owner pill, and "Open" tap area.
 - **States**:
   - Loading: Skeleton table rows with animated shimmer.
   - Empty: "No tickets currently in the system."
@@ -149,9 +160,27 @@ If the current user has `mustChangePassword: true`:
   - **Status Workflow Action Bar**:
     - Current status badge.
     - Permitted Next Actions: Rendered as contextual primary/secondary buttons based on transition matrix:
-      - e.g., if status is `New`, shows button *"Start Work (Open)"* and *"Cancel Ticket"*.
-      - if status is `Open`, shows button *"Begin Progress (In Progress)"*.
-      - if status is `In Progress`, shows *"Wait for Requester"*, *"Resolve Ticket"*, *"Cancel Ticket"*.
+      - When `NEW` (`New`):
+        - Primary: *"Mark as Open"* (transitions to `OPEN`)
+        - Secondary/Destructive: *"Cancel Ticket"* (transitions to `CANCELLED`)
+      - When `OPEN` (`Open`):
+        - Primary: *"Start Progress"* (transitions to `IN_PROGRESS`)
+        - Secondary/Destructive: *"Cancel Ticket"* (transitions to `CANCELLED`)
+      - When `IN_PROGRESS` (`In Progress`):
+        - Secondary: *"Wait for Requester"* (transitions to `WAITING_FOR_REQUESTER`)
+        - Primary: *"Resolve Ticket"* (transitions to `RESOLVED`)
+        - Destructive: *"Cancel Ticket"* (transitions to `CANCELLED`)
+      - When `WAITING_FOR_REQUESTER` (`Waiting for Requester`):
+        - Primary: *"Resume Progress"* (transitions to `IN_PROGRESS`)
+        - Secondary: *"Resolve Ticket"* (transitions to `RESOLVED`)
+        - Destructive: *"Cancel Ticket"* (transitions to `CANCELLED`)
+      - When `RESOLVED` (`Resolved`):
+        - Primary: *"Close Ticket"* (transitions to `CLOSED`)
+        - Secondary: *"Reopen Ticket"* (transitions to `REOPENED`)
+      - When `CLOSED` (`Closed`):
+        - Secondary: *"Reopen Ticket"* (transitions to `REOPENED`)
+      - When `CANCELLED` (`Cancelled`):
+        - No transition buttons rendered (Terminal state).
 - **Ticket Content**:
   - Requester info, creation date, summary, category, related system, full description.
   - Attachments section (view metadata, download files).
