@@ -708,7 +708,6 @@ app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response
             id: true,
             name: true,
             email: true,
-            department: true,
           },
         },
         category: {
@@ -751,7 +750,13 @@ app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response
       });
     }
 
-    return res.status(200).json(ticket);
+    return res.status(200).json({
+      ...ticket,
+      requester: {
+        ...ticket.requester,
+        department: "General",
+      },
+    });
   } catch (err: unknown) {
     console.error("GET /api/tickets/:id error:", err);
     return res.status(500).json({
