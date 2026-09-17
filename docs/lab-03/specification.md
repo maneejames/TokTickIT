@@ -209,17 +209,18 @@ The required ticket statuses are defined in the database and API using `SCREAMIN
    - `content`: String (Text, 1–2000 chars)
    - `createdAt`: DateTime (Default: `now()`)
 6. **Retired Model**:
-   - `RequesterUser` (Lab 2 temporary model) is deleted post-migration.
+   - `RequesterUser` (Lab 2 temporary model) is deleted in Phase B, once Issue #6 repoints Lab 2 routes off it.
 
 ### 8.2 Migration Plan
-The migration executes in the following sequence without data loss:
-1. **Create User table**: Create the `User` table (with enums `Role`, `TicketStatus`, and `Priority`) and tables `PublicComment`, `InternalNote`.
-2. **Copy RequesterUser rows**: Migrate all existing `RequesterUser` records into `User` with matching `id`, name, email, `role = 'REQUESTER'`, `isActive = true`, `mustChangePassword = true`, and `passwordHash` generated via bcrypt for initial seed password `Password123!`.
-3. **Repoint Foreign Keys & Columns**: Repoint `Ticket.requesterId` foreign key to `User.id`, add nullable `Ticket.ownerId` pointing to `User.id`, add `Ticket.isRequesterResolved` (default `false`), and initialize `Ticket.itPriority` to match `Ticket.requestedPriority`.
-4. **Drop RequesterUser**: Drop the deprecated `RequesterUser` model and table once constraints and dependencies are validated.
+The migration executes in two explicit phases without data loss:
+- **Phase A (Issue #3 — this issue)**: Create the `User` table (with enums `Role`, `TicketStatus`, and `Priority`) and tables `PublicComment`, `InternalNote`. Copy existing `RequesterUser` records into `User` with matching `id`, name, email, `role = 'REQUESTER'`, `isActive = true`, `mustChangePassword = true`, and initial bcrypt `passwordHash`. Repoint `Ticket.requesterId` foreign key to `User.id`, add nullable `Ticket.ownerId` pointing to `User.id`, add `Ticket.isRequesterResolved` (default `false`), and initialize `Ticket.itPriority` to match `Ticket.requestedPriority`. The `requester_users` table remains in place temporarily to keep Lab 2 routes and regression tests passing.
+- **Phase B (Issue #6)**: Drop the `requester_users` table once Lab 2 routes and tests no longer reference `RequesterUser`.
 
 ### 8.3 Idempotent Seed Data (`server/prisma/seed.ts`)
 All seeded accounts are created with standard local development password: `Password123!`.
+
+*Assumption on `isRequesterResolved`*: Seed tickets are seeded with `isRequesterResolved: false` universally for now because no feature in the current implementation state can set it `true` yet; a seed ticket with `isRequesterResolved: true` should be added when Issue #6 (Public Comments & "problem appears resolved") lands, so Issue #7's queue badge has something realistic to display.
+
 - **Administrators**:
   - `admin@kmutt.ac.th` (Active, name: "Central Administrator", `mustChangePassword: false`)
 - **IT Staff**:
