@@ -25,7 +25,7 @@ Sprint 3 implements a rigorous Test-Driven Development (TDD) and Test-Driven Del
 | **AUTH-API-01** | API | AC-01 | Valid credential login | 200 OK; sets `toktickit_session` cookie; returns user payload | `server/tests/lab-03/auth.api.test.ts` | Planned |
 | **AUTH-API-02** | API | AC-05 | Inactive user login attempt | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Planned |
 | **AUTH-API-03** | API | AC-06 | Bad password or unknown email | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-04** | API | AC-07 | Session logout | 200/204; cookie cleared; session invalidated on subsequent calls | `server/tests/lab-03/auth.api.test.ts` | Planned |
+| **AUTH-API-04** | API | AC-07 | Session logout | 200 OK; JSON message returned; cookie cleared; session invalidated on subsequent calls | `server/tests/lab-03/auth.api.test.ts` | Planned |
 | **AUTH-API-05** | API | AC-03 | Password change with valid complexity | 200 OK; `mustChangePassword` flag cleared | `server/tests/lab-03/auth.api.test.ts` | Planned |
 | **AUTH-API-06** | API | AC-04 | Password change failing complexity | 400 Bad Request; field error with complexity hints | `server/tests/lab-03/auth.api.test.ts` | Planned |
 | **AUTH-API-07** | API | AC-02, BR-02 | Block normal API if `mustChangePassword=true` | 403 Forbidden on `/api/tickets` until password is changed | `server/tests/lab-03/auth.api.test.ts` | Planned |
@@ -48,7 +48,7 @@ Sprint 3 implements a rigorous Test-Driven Development (TDD) and Test-Driven Del
 | **DETAIL-API-04**| API| AC-17, AC-18 | Status transition matrix enforcement | Valid transitions succeed (200); invalid transitions return 400 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
 | **DETAIL-UI-01**| UI | AC-14, AC-16 | Claim, reassign, and priority controls | Operational header reflects real-time status and ownership changes | `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
 | **COMMS-API-01**| API | AC-19 | Post and retrieve Public Comments | 201 Created; visible to both Requester owner and IT Staff | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| **COMMS-API-02**| API | AC-20, AC-21 | Post and retrieve Internal Notes | 201 Created for Staff; strictly rejected with 403 for Requester | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
+| **COMMS-API-02**| API | AC-20, AC-21, AC-33 | Post and retrieve Internal Notes | 201 Created for Staff; strictly rejected with 403 for Requester and 403 for Admin (asserted in separate test cases) | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
 | **COMMS-API-03**| API | AC-22 | Empty/whitespace comment/note rejection | 400 Bad Request if trimmed content is empty | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
 | **COMMS-API-04**| API | AC-23 | Requester "Problem Appears Resolved" toggle | 200 OK; `isRequesterResolved` updated; status stays intact | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
 | **ADMIN-API-01**| API | AC-24 | Admin lists users with search/role filter | 200 OK; returns matching user list with roles and active flags | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
@@ -103,6 +103,7 @@ Every Acceptance Criterion defined in `docs/lab-03/specification.md` maps to one
 | **AC-30** | Admin resets user initial password | `ADMIN-API-07`, `ADMIN-E2E-01` | `server/tests/lab-03/users-admin.api.test.ts`<br>`e2e/lab-03/user-administration.spec.ts` |
 | **AC-31** | Non-Admin forbidden from calling admin endpoints | `AUTHZ-API-02` | `server/tests/lab-03/authorization.api.test.ts` |
 | **AC-32** | Seed execution is idempotent | Script test | `server/prisma/seed.ts` |
+| **AC-33** | Administrator forbidden from internal notes & comments | `COMMS-API-02`, `AUTHZ-API-02` | `server/tests/lab-03/comments-notes.api.test.ts`<br>`server/tests/lab-03/authorization.api.test.ts` |
 
 ---
 

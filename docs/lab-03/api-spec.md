@@ -17,6 +17,7 @@ Lab 3 transitions from the temporary `X-Requester-Id` header simulation to stand
 - The cookie contains a cryptographically signed session token or securely signed JWT.
 - In automated integration tests, clients may supply standard cookie headers (`Cookie: toktickit_session=...`) or the Bearer token header (`Authorization: Bearer <token>`).
 - Client-supplied `requesterId` or `userId` in request bodies or query parameters are strictly ignored for authorization and ownership determinations; identity is exclusively extracted from the validated server session.
+- **Session Re-validation**: To enforce immediate account deactivation and password change requirements, session validation middleware must check `isActive` and `mustChangePassword` against the database on every authenticated request. If an account is deactivated (`isActive: false`), any session is immediately rejected with `401 Unauthorized`. If `mustChangePassword: true`, all operational endpoints reject the call with `403 Forbidden` until password change is fulfilled.
 
 ### 1.3 Standard Error Envelopes
 Every error response returns a standardized JSON structure:
@@ -38,12 +39,11 @@ Every error response returns a standardized JSON structure:
 ### 1.4 HTTP Status Codes
 | HTTP Code | Meaning | Example Trigger Scenario |
 |---|---|---|
-| `200 OK` | Request succeeded | Successful GET, PATCH, or session validation |
+| `200 OK` | Request succeeded | Successful GET, PATCH, logout, or session validation |
 | `201 Created` | Resource created | Successful ticket, user, comment, or note creation |
-| `204 No Content` | Success with no body | Successful logout |
 | `400 Bad Request` | Invalid input or business rule breach | Malformed JSON, failed validation, invalid status transition, self-deactivation attempt |
 | `401 Unauthorized` | Missing, invalid, or expired session | Calling protected endpoint without active session, invalid credentials, inactive account login attempt |
-| `403 Forbidden` | Authenticated but lacking permission | Requester calling IT Staff queue or Admin user endpoints; Requester accessing Internal Notes; user with `mustChangePassword=true` calling normal endpoints |
+| `403 Forbidden` | Authenticated but lacking permission | Requester calling IT Staff queue or Admin user endpoints; Requester or Administrator accessing Internal Notes; user with `mustChangePassword=true` calling normal endpoints |
 | `404 Not Found` | Resource does not exist or hidden | Ticket ID does not exist; Requester accessing another Requester's ticket (enumeration defense) |
 | `409 Conflict` | Unique constraint violation | Registering or updating user with an email already taken |
 | `410 Gone` | Resource removed | Attempting to download a soft-removed attachment |
@@ -95,7 +95,7 @@ Every error response returns a standardized JSON structure:
 - **Method & Route**: `POST /api/auth/logout`
 - **Access**: Authenticated (`REQUESTER`, `IT_STAFF`, `ADMINISTRATOR`)
 - **Responses**:
-  - `200 OK` or `204 No Content`: Clears `toktickit_session` cookie and invalidates session server-side.
+  - `200 OK`: Clears `toktickit_session` cookie and invalidates session server-side.
     ```json
     {
       "message": "Successfully logged out"
@@ -263,13 +263,13 @@ Every error response returns a standardized JSON structure:
 - **Method & Route**: `GET /api/tickets/:id/comments`
 - **Access**: `REQUESTER` (owner of ticket only) or `IT_STAFF`
 - **Responses**:
-  - `200 OK`: List of public comments sorted chronologically ascending.
+  - `200 OK`: Full list of all public comments for the ticket, returned unpaginated and sorted chronologically ascending (`createdAt ASC`).
 
 ---
 
 ### 4.3 Post Internal Note
 - **Method & Route**: `POST /api/tickets/:id/notes`
-- **Access**: `IT_STAFF` only (`REQUESTER` receives `403 Forbidden`)
+- **Access**: `IT_STAFF` only (`REQUESTER` and `ADMINISTRATOR` receive `403 Forbidden`)
 - **Request Body**:
 ```json
 {
@@ -288,16 +288,16 @@ Every error response returns a standardized JSON structure:
       "createdAt": "2026-09-16T12:35:00.000Z"
     }
     ```
-  - `403 Forbidden`: Called by Requester.
+  - `403 Forbidden`: Called by Requester or Administrator.
 
 ---
 
 ### 4.4 Get Internal Notes
 - **Method & Route**: `GET /api/tickets/:id/notes`
-- **Access**: `IT_STAFF` and `ADMINISTRATOR` (`REQUESTER` receives `403 Forbidden`)
+- **Access**: `IT_STAFF` only (`REQUESTER` and `ADMINISTRATOR` receive `403 Forbidden`)
 - **Responses**:
-  - `200 OK`: List of internal notes sorted chronologically ascending.
-  - `403 Forbidden`: Called by Requester. Content is never revealed.
+  - `200 OK`: Full list of all internal notes for the ticket, returned unpaginated and sorted chronologically ascending (`createdAt ASC`).
+  - `403 Forbidden`: Called by Requester or Administrator. Content is never revealed.
 
 ---
 
@@ -399,10 +399,10 @@ Every error response returns a standardized JSON structure:
 - **Method & Route**: `GET /api/admin/users`
 - **Access**: `ADMINISTRATOR` only
 - **Query Parameters**:
-  - `search`: string (search in name or email)
+  - `search`: string (case-insensitive search in `name` or `email`)
   - `role`: `REQUESTER` | `IT_STAFF` | `ADMINISTRATOR`
 - **Responses**:
-  - `200 OK`: Array of user accounts.
+  - `200 OK`: Full array of all matching user accounts, unpaginated and ordered deterministically by `id ASC` (`isActive` both true and false included).
     ```json
     [
       {
@@ -429,12 +429,12 @@ Every error response returns a standardized JSON structure:
   "email": "prasert.som@kmutt.ac.th",
   "role": "IT_STAFF",
   "isActive": true,
-  "initialPassword": "TempPassword123!"
+  "initialPassword": "<initial-password>"
 }
 ```
 - **Responses**:
   - `201 Created`: User created, password hashed with bcrypt, `mustChangePassword = true`.
-  - `400 Bad Request`: Validation failure or invalid role.
+  - `400 Bad Request`: Validation failure, invalid role, or initial password fails complexity rules.
   - `409 Conflict`: Email already exists in the system.
 
 ---
