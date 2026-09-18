@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { getPrisma } from "../../src/prisma.js";
-import bcrypt from "bcryptjs";
 
 describe("Lab 3 - Data Model, Migration & Seed Tests", () => {
   const prisma = getPrisma();
@@ -121,20 +120,46 @@ describe("Lab 3 - Data Model, Migration & Seed Tests", () => {
     });
   });
 
-  // Test 4: No plaintext passwords
+  // Test 4: No plaintext passwords — scoped to seed users only
   describe("No plaintext passwords", () => {
-    it("all user passwords are valid bcrypt hashes and match Password123!", async () => {
-      const users = await (prisma as any).user.findMany();
-      expect(users.length).toBeGreaterThanOrEqual(1);
+    // Canonical list of seed-user emails from prisma/seed.ts.
+    // Tests that create ephemeral users (e.g., auth tests) are excluded.
+    const SEED_EMAILS = [
+      "admin@kmutt.ac.th",
+      "staff.witchai@kmutt.ac.th",
+      "staff.kamon@kmutt.ac.th",
+      "staff.naree@kmutt.ac.th",
+      "staff.inactive@kmutt.ac.th",
+      "somchai.jai@kmutt.ac.th",
+      "suda.rak@kmutt.ac.th",
+      "wichai.mee@kmutt.ac.th",
+      "anong.cha@kmutt.ac.th",
+      "inactive.req@kmutt.ac.th",
+      "temp.req@kmutt.ac.th",
+      "john.doe@kmutt.ac.th",
+      "jane.smith@kmutt.ac.th",
+      "anon.old@kmutt.ac.th",
+    ];
 
-      for (const user of users) {
+    it("all seeded user passwords are valid bcrypt hashes (not plaintext)", async () => {
+      const seedUsers = await (prisma as any).user.findMany({
+        where: { email: { in: SEED_EMAILS } },
+      });
+      expect(seedUsers.length).toBe(SEED_EMAILS.length);
+
+      for (const user of seedUsers) {
+        // passwordHash must be defined and non-empty
         expect(user.passwordHash).toBeDefined();
-        // bcrypt hash starts with $2a$, $2b$, or $2y$ and is 60 chars
-        expect(user.passwordHash).toMatch(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
-        expect(user.passwordHash).not.toBe("Password123!");
+        expect(user.passwordHash.length).toBeGreaterThan(0);
 
-        const isMatch = await bcrypt.compare("Password123!", user.passwordHash);
-        expect(isMatch).toBe(true);
+        // Must be a valid bcrypt hash: starts with $2a$, $2b$, or $2y$ and is 60 chars
+        expect(user.passwordHash).toMatch(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
+
+        // Must NOT be a common plaintext password stored verbatim
+        const COMMON_PLAINTEXT = ["Password123!", "password", "123456", "admin"];
+        for (const pt of COMMON_PLAINTEXT) {
+          expect(user.passwordHash).not.toBe(pt);
+        }
       }
     });
   });

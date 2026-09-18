@@ -9,10 +9,244 @@ import { getPrisma } from "./prisma.js";
 import { requireRequester } from "./middleware/requesterAuth.js";
 import { generateTicketNumber } from "./services/ticketNumber.js";
 
+import {
+  createSession,
+  destroySession,
+  requireAuth,
+  extractSessionToken,
+  validatePasswordComplexity,
+} from "./auth.js";
+import bcrypt from "bcryptjs";
+
 export const app = express();
 
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: true,
+}));
 app.use(express.json());
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 4 — Authentication Endpoints
+// ---------------------------------------------------------------------------
+
+// POST /api/auth/login
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  const { email, password } = req.body ?? {};
+
+  if (!email || !password || typeof email !== "string" || typeof password !== "string") {
+    return res.status(401).json({
+      error: {
+        code: "INVALID_CREDENTIALS",
+        message: "Invalid email or password",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const user = await (prisma as any).user.findUnique({
+      where: { email: email.trim() },
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password",
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password",
+        },
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password",
+        },
+      });
+    }
+
+    // Issue session
+    const token = createSession(user.id);
+
+    // Set cookie per api-spec.md §1.2 / §2.1: HttpOnly, SameSite=Lax, Path=/
+    res.cookie("toktickit_session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword,
+      },
+    });
+  } catch (_err) {
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Login failed",
+      },
+    });
+  }
+});
+
+// POST /api/auth/logout
+app.post("/api/auth/logout", requireAuth, async (req: Request, res: Response) => {
+  const token = extractSessionToken(req);
+  if (token) {
+    destroySession(token);
+  }
+
+  res.clearCookie("toktickit_session", {
+    path: "/",
+  });
+
+  return res.status(200).json({
+    message: "Successfully logged out",
+  });
+});
+
+// GET /api/auth/me
+app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
+  return res.status(200).json({
+    user: {
+      id: req.user!.id,
+      name: req.user!.name,
+      email: req.user!.email,
+      role: req.user!.role,
+      mustChangePassword: req.user!.mustChangePassword,
+    },
+  });
+});
+
+// POST /api/auth/change-password
+app.post("/api/auth/change-password", requireAuth, async (req: Request, res: Response) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body ?? {};
+
+  const details: { field: string; message: string }[] = [];
+
+  if (!currentPassword) {
+    details.push({
+      field: "currentPassword",
+      message: "Current password is required",
+    });
+  }
+
+  if (!newPassword) {
+    details.push({
+      field: "newPassword",
+      message: "New password is required",
+    });
+  }
+
+  if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+    details.push({
+      field: "confirmPassword",
+      message: "Passwords do not match",
+    });
+  }
+
+  if (newPassword && !validatePasswordComplexity(newPassword)) {
+    details.push({
+      field: "newPassword",
+      message:
+        "Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character",
+    });
+  }
+
+  if (details.length > 0) {
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Password does not meet complexity requirements",
+        details,
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const user = await (prisma as any).user.findUnique({
+      where: { id: req.user!.id },
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "User not found",
+        },
+      });
+    }
+
+    const currentMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!currentMatches) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Current password is incorrect",
+          details: [
+            {
+              field: "currentPassword",
+              message: "Current password is incorrect",
+            },
+          ],
+        },
+      });
+    }
+
+    // Hash new password using bcrypt (work factor 10)
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    await (prisma as any).user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newHash,
+        mustChangePassword: false,
+      },
+    });
+
+    // BR-26: Invalidate old session and issue rotated session token
+    const oldToken = extractSessionToken(req);
+    if (oldToken) {
+      destroySession(oldToken);
+    }
+
+    const newToken = createSession(user.id);
+    res.cookie("toktickit_session", newToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (_err) {
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to change password",
+      },
+    });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Issue 2 — API health check

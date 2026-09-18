@@ -17,18 +17,43 @@ declare global {
   }
 }
 
+import { authenticateSession } from "../auth.js";
+
 /**
  * Reusable middleware that enforces requester presence and active status.
- * Reads X-Requester-Id header.
+ * Reads session or X-Requester-Id header.
  * - 401 Unauthorized if missing
  * - 404 Not Found if non-existent or invalid id format
- * - 403 Forbidden if inactive
+ * - 403 Forbidden if inactive or mustChangePassword
  */
 export async function requireRequester(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
+  // First, check if there is an authenticated session
+  const authUser = await authenticateSession(req);
+  if (authUser) {
+    if (authUser.mustChangePassword) {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Mandatory password change required before accessing application resources",
+        },
+      });
+    }
+
+    req.user = authUser;
+    req.requester = {
+      id: authUser.id,
+      name: authUser.name,
+      email: authUser.email,
+      department: "IT",
+      isActive: authUser.isActive,
+    };
+    return next();
+  }
+
   const headerVal = req.header("x-requester-id") ?? req.query.requesterId;
   if (!headerVal) {
     return res.status(401).json({

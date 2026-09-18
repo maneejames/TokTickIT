@@ -1,19 +1,32 @@
 import React from "react";
+import { useAuth } from "../context/AuthContext.js";
 import { useRequester } from "../context/RequesterContext.js";
-import { RequesterSelect } from "./RequesterSelect.js";
 
 interface AppShellProps {
   children?: React.ReactNode;
-  activeNav?: "my-tickets" | "create-ticket";
-  onNavSelect?: (nav: "my-tickets" | "create-ticket") => void;
+  activeNav?: "my-tickets" | "create-ticket" | "staff-queue" | "admin-users";
+  onNavSelect?: (nav: any) => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
   children,
-  activeNav = "create-ticket",
+  activeNav = "my-tickets",
   onNavSelect,
 }) => {
-  const { currentRequester, changeRequester, isLoading } = useRequester();
+  const { user, logout } = useAuth();
+  const { currentRequester, changeRequester } = useRequester();
+
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case "ADMINISTRATOR":
+        return "Administrator";
+      case "IT_STAFF":
+        return "IT Staff";
+      case "REQUESTER":
+      default:
+        return "Requester";
+    }
+  };
 
   return (
     <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: "var(--color-page-bg)" }}>
@@ -28,57 +41,151 @@ export const AppShell: React.FC<AppShellProps> = ({
       >
         <div className="d-flex align-items-center gap-4">
           <div className="d-flex align-items-center gap-2">
-            <h1 style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.5px", margin: 0, color: "#FFFFFF" }}>
+            <h1
+              style={{
+                fontSize: "20px",
+                fontWeight: 700,
+                letterSpacing: "-0.5px",
+                margin: 0,
+                color: "#FFFFFF",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                if (!user?.mustChangePassword) {
+                  if (user?.role === "REQUESTER") onNavSelect?.("my-tickets");
+                  else if (user?.role === "IT_STAFF") onNavSelect?.("staff-queue");
+                  else if (user?.role === "ADMINISTRATOR") onNavSelect?.("admin-users");
+                }
+              }}
+            >
               TokTickIT
             </h1>
           </div>
 
-          {/* Navigation Links (visible when requester is active) */}
-          {currentRequester && (
+          {/* Navigation Links per ui-spec.md §2.1 (hidden if mustChangePassword) */}
+          {user && !user.mustChangePassword && (
             <nav className="d-none d-md-flex align-items-center gap-3 ms-3">
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={() => onNavSelect?.("my-tickets")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") onNavSelect?.("my-tickets");
-                }}
-                style={{
-                  color: activeNav === "my-tickets" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                  fontWeight: activeNav === "my-tickets" ? 600 : 500,
-                  fontSize: "14px",
-                  cursor: "pointer",
-                  borderBottom: activeNav === "my-tickets" ? "3px solid #FFFFFF" : "none",
-                  paddingBottom: "4px",
-                }}
-              >
-                My Tickets
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={() => onNavSelect?.("create-ticket")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") onNavSelect?.("create-ticket");
-                }}
-                style={{
-                  color: activeNav === "create-ticket" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                  fontWeight: activeNav === "create-ticket" ? 600 : 500,
-                  fontSize: "14px",
-                  cursor: "pointer",
-                  borderBottom: activeNav === "create-ticket" ? "3px solid #FFFFFF" : "none",
-                  paddingBottom: "4px",
-                }}
-              >
-                Create Ticket
-              </span>
+              {user.role === "REQUESTER" && (
+                <>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onNavSelect?.("my-tickets")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") onNavSelect?.("my-tickets");
+                    }}
+                    style={{
+                      color: activeNav === "my-tickets" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                      fontWeight: activeNav === "my-tickets" ? 600 : 500,
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      borderBottom: activeNav === "my-tickets" ? "3px solid #FFFFFF" : "none",
+                      paddingBottom: "4px",
+                    }}
+                  >
+                    My Tickets
+                  </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onNavSelect?.("create-ticket")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") onNavSelect?.("create-ticket");
+                    }}
+                    style={{
+                      color: activeNav === "create-ticket" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                      fontWeight: activeNav === "create-ticket" ? 600 : 500,
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      borderBottom: activeNav === "create-ticket" ? "3px solid #FFFFFF" : "none",
+                      paddingBottom: "4px",
+                    }}
+                  >
+                    Create Ticket
+                  </span>
+                </>
+              )}
+
+              {user.role === "IT_STAFF" && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onNavSelect?.("staff-queue")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") onNavSelect?.("staff-queue");
+                  }}
+                  style={{
+                    color: activeNav === "staff-queue" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                    fontWeight: activeNav === "staff-queue" ? 600 : 500,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    borderBottom: activeNav === "staff-queue" ? "3px solid #FFFFFF" : "none",
+                    paddingBottom: "4px",
+                  }}
+                >
+                  Ticket Queue
+                </span>
+              )}
+
+              {user.role === "ADMINISTRATOR" && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onNavSelect?.("admin-users")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") onNavSelect?.("admin-users");
+                  }}
+                  style={{
+                    color: activeNav === "admin-users" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
+                    fontWeight: activeNav === "admin-users" ? 600 : 500,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    borderBottom: activeNav === "admin-users" ? "3px solid #FFFFFF" : "none",
+                    paddingBottom: "4px",
+                  }}
+                >
+                  User Management
+                </span>
+              )}
             </nav>
           )}
         </div>
 
-        {/* Right: Development Requester Context Pill */}
+        {/* Right: Authenticated User Profile & Logout Widget per ui-spec.md §2.1 */}
         <div className="d-flex align-items-center">
-          {currentRequester ? (
+          {user ? (
+            <div className="d-flex align-items-center gap-3">
+              <div
+                className="d-flex align-items-center px-3 py-1 rounded-pill"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.15)",
+                  color: "#FFFFFF",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                }}
+              >
+                <span className="me-1" aria-hidden="true">👤</span>
+                <span>
+                  {user.name} ({getRoleBadge(user.role)})
+                </span>
+              </div>
+              <button
+                type="button"
+                className="zen-btn-secondary"
+                onClick={logout}
+                style={{
+                  fontSize: "12px",
+                  padding: "4px 12px",
+                  backgroundColor: "transparent",
+                  color: "#FFFFFF",
+                  borderColor: "rgba(255, 255, 255, 0.8)",
+                  borderRadius: "999px",
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          ) : currentRequester ? (
             <div className="d-flex align-items-center gap-3">
               <div
                 className="d-flex align-items-center px-3 py-1 rounded-pill"
@@ -109,52 +216,12 @@ export const AppShell: React.FC<AppShellProps> = ({
                 Change Requester
               </button>
             </div>
-          ) : (
-            <span
-              style={{
-                fontSize: "12px",
-                color: "rgba(255, 255, 255, 0.8)",
-                fontStyle: "italic",
-              }}
-            >
-              Testing Mode — No Requester Selected
-            </span>
-          )}
+          ) : null}
         </div>
       </header>
 
-      {/* Sub-banner: Testing Mode Notice */}
-      <div
-        className="px-4 py-2 text-center"
-        style={{
-          backgroundColor: "var(--color-warning-bg)",
-          color: "#6C4E00",
-          borderBottom: "1px solid #E5CE85",
-          fontSize: "13px",
-        }}
-        role="note"
-      >
-        <span>
-          🧪 <strong>Lab 2 Testing Mode:</strong> Authenticated sessions will be introduced in Lab 3.
-          Use the &apos;Change Requester&apos; button to switch user context.
-        </span>
-      </div>
-
       {/* Main Content Area */}
       <main className="flex-grow-1">
-        {isLoading ? (
-          <div className="d-flex justify-content-center align-items-center py-5">
-            <div
-              className="spinner-border"
-              style={{ color: "var(--color-primary-green)" }}
-              role="status"
-            >
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        ) : !currentRequester ? (
-          <RequesterSelect />
-        ) : null}
         {children}
       </main>
     </div>

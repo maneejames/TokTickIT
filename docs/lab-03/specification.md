@@ -116,6 +116,7 @@ Security must be enforced strictly on the backend: hiding or disabling frontend 
 | **BR-23** | The system must always have at least one active Administrator. Deactivating or reassigning the role of the sole remaining active Administrator is blocked (`400 Bad Request`). |
 | **BR-24** | User deletion is not supported. Account removal is performed exclusively via deactivation (`isActive: false`). |
 | **BR-25** | All Lab 2 ticket number sequencing (`TICK-YYYYMMDD-XXXX`), attachment constraints (max 5 active, max 5 MB, JPEG/PNG/WEBP/PDF), and soft-removal rules (`410 Gone` on download) continue unchanged under the authenticated data model. |
+| **BR-26** | A successful password change (first-login or self-service) must invalidate the pre-change session and issue a new session token; the old token must be rejected on any subsequent request. |
 
 ---
 
