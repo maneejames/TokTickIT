@@ -12,11 +12,20 @@ import { generateTicketNumber } from "./services/ticketNumber.js";
 import {
   createSession,
   destroySession,
-  requireAuth,
+  requireAuth as requireAuthOld,
   extractSessionToken,
   validatePasswordComplexity,
+  authenticateSession,
 } from "./auth.js";
 import bcrypt from "bcryptjs";
+
+import {
+  requireAuth,
+  requireRequesterOnly,
+  requireAuthAndTicketAccess,
+  requireTicketOwnership,
+  requireRequesterTicketAccess,
+} from "./middleware/authorization.js";
 
 export const app = express();
 
@@ -25,6 +34,15 @@ app.use(cors({
   origin: true,
 }));
 app.use(express.json());
+
+// Global middleware to authenticate sessions and attach user to request
+app.use(async (req, res, next) => {
+  const user = await authenticateSession(req);
+  if (user) {
+    req.user = user;
+  }
+  next();
+});
 
 // ---------------------------------------------------------------------------
 // Lab 3 Issue 4 — Authentication Endpoints
@@ -107,7 +125,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/logout
-app.post("/api/auth/logout", requireAuth, async (req: Request, res: Response) => {
+app.post("/api/auth/logout", requireAuth(), async (req: Request, res: Response) => {
   const token = extractSessionToken(req);
   if (token) {
     destroySession(token);
@@ -123,7 +141,7 @@ app.post("/api/auth/logout", requireAuth, async (req: Request, res: Response) =>
 });
 
 // GET /api/auth/me
-app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
+app.get("/api/auth/me", requireAuth(), async (req: Request, res: Response) => {
   return res.status(200).json({
     user: {
       id: req.user!.id,
@@ -136,7 +154,7 @@ app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/change-password
-app.post("/api/auth/change-password", requireAuth, async (req: Request, res: Response) => {
+app.post("/api/auth/change-password", requireAuth(true), async (req: Request, res: Response) => {
   const { currentPassword, newPassword, confirmPassword } = req.body ?? {};
 
   const details: { field: string; message: string }[] = [];
@@ -355,7 +373,7 @@ app.get("/api/requester-test-auth", requireRequester, (req: Request, res: Respon
 // ---------------------------------------------------------------------------
 // Lab 2 Issue 4 — Create Ticket: POST /api/tickets
 // ---------------------------------------------------------------------------
-app.post("/api/tickets", requireRequester, async (req: Request, res: Response) => {
+app.post("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Response) => {
   const { categoryId, relatedSystemId, summary, description, requestedPriority } = req.body ?? {};
 
   const details: { field: string; message: string }[] = [];
@@ -452,7 +470,7 @@ app.post("/api/tickets", requireRequester, async (req: Request, res: Response) =
       return tx.ticket.create({
         data: {
           ticketNumber,
-          requesterId: req.requester!.id, // Authenticated requester from context
+          requesterId: req.user!.id, // Session-derived identity (BR-03, BR-07)
           categoryId: parsedCategoryId,
           relatedSystemId: parsedSystemId,
           summary: trimmedSummary,
@@ -500,7 +518,7 @@ const upload = multer({
 
 app.post(
   "/api/tickets/:id/attachments",
-  requireRequester,
+  ...requireRequesterTicketAccess(),
   (req: Request, res: Response, next) => {
     upload.single("file")(req, res, (err: unknown) => {
       if (err instanceof multer.MulterError) {
@@ -549,7 +567,7 @@ app.post(
       where: { id: ticketId },
     });
 
-    if (!ticket || ticket.requesterId !== req.requester!.id) {
+    if (!ticket || ticket.requesterId !== req.user!.id) {
       return res.status(404).json({
         error: {
           code: "NOT_FOUND",
@@ -652,7 +670,7 @@ const ALLOWED_PAGE_SIZES = [5, 10, 20, 50] as const;
 type SortBy = (typeof ALLOWED_SORT_BY)[number];
 type SortOrder = (typeof ALLOWED_SORT_ORDER)[number];
 
-app.get("/api/tickets", requireRequester, async (req: Request, res: Response) => {
+app.get("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Response) => {
   // ── Query parameter parsing & validation ─────────────────────────────────
   const validationErrors: { field: string; message: string }[] = [];
 
@@ -756,7 +774,7 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
   }
 
   // ── Build Prisma where clause ─────────────────────────────────────────────
-  const requesterId = req.requester!.id;
+  const requesterId = req.user!.id; // Session-derived identity (BR-03, BR-07)
 
   const where: Prisma.TicketWhereInput = {
     requesterId, // strict ownership — never another requester's tickets
@@ -815,6 +833,7 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
       // Step 2: fetch full ticket data for paged IDs, preserve raw order
       type TicketItem = {
         id: number;
+        requesterId: number;
         ticketNumber: string;
         summary: string;
         requestedPriority: Priority;
@@ -832,6 +851,7 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
           where: { id: { in: pagedIds } },
           select: {
             id: true,
+            requesterId: true,
             ticketNumber: true,
             summary: true,
             requestedPriority: true,
@@ -870,6 +890,7 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
         take: pageSize,
         select: {
           id: true,
+          requesterId: true,
           ticketNumber: true,
           summary: true,
           requestedPriority: true,
@@ -910,7 +931,7 @@ app.get("/api/tickets", requireRequester, async (req: Request, res: Response) =>
 // ---------------------------------------------------------------------------
 
 // GET /api/tickets/:id: Single ticket detail
-app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response) => {
+app.get("/api/tickets/:id", ...requireAuthAndTicketAccess(), async (req: Request, res: Response) => {
   const ticketId = Number(req.params.id);
   if (!Number.isInteger(ticketId) || ticketId <= 0) {
     return res.status(404).json({
@@ -975,7 +996,7 @@ app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response
       },
     });
 
-    if (!ticket || ticket.requesterId !== req.requester!.id) {
+    if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
       return res.status(404).json({
         error: {
           code: "NOT_FOUND",
@@ -1005,7 +1026,7 @@ app.get("/api/tickets/:id", requireRequester, async (req: Request, res: Response
 // GET /api/tickets/:id/attachments/:attachmentId: Attachment metadata
 app.get(
   "/api/tickets/:id/attachments/:attachmentId",
-  requireRequester,
+  ...requireAuthAndTicketAccess(),
   async (req: Request, res: Response) => {
     const ticketId = Number(req.params.id);
     const attachmentId = Number(req.params.attachmentId);
@@ -1030,7 +1051,7 @@ app.get(
         where: { id: ticketId },
       });
 
-      if (!ticket || ticket.requesterId !== req.requester!.id) {
+      if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
         return res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -1082,7 +1103,8 @@ app.get(
 // GET /api/tickets/:id/attachments/:attachmentId/download: Stream active attachment
 app.get(
   "/api/tickets/:id/attachments/:attachmentId/download",
-  requireRequester,
+  requireAuth(false, true, true),
+  requireTicketOwnership("id", "Attachment not found"),
   async (req: Request, res: Response) => {
     const ticketId = Number(req.params.id);
     const attachmentId = Number(req.params.attachmentId);
@@ -1107,7 +1129,7 @@ app.get(
         where: { id: ticketId },
       });
 
-      if (!ticket || ticket.requesterId !== req.requester!.id) {
+      if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
         return res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -1190,7 +1212,7 @@ app.get(
 // PATCH /api/tickets/:id/attachments/:attachmentId/remove: Soft-remove attachment
 app.patch(
   "/api/tickets/:id/attachments/:attachmentId/remove",
-  requireRequester,
+  ...requireRequesterTicketAccess("id", "Attachment not found"),
   async (req: Request, res: Response) => {
     const ticketId = Number(req.params.id);
     const attachmentId = Number(req.params.attachmentId);
@@ -1227,7 +1249,7 @@ app.patch(
         where: { id: ticketId },
       });
 
-      if (!ticket || ticket.requesterId !== req.requester!.id) {
+      if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
         return res.status(404).json({
           error: {
             code: "NOT_FOUND",
