@@ -124,7 +124,9 @@ describe("MyTickets Component UI Tests", () => {
                 pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 1 },
             });
             const searchInput = screen.getByPlaceholderText(/Search by summary or ticket #\.\.\./i);
-            fireEvent.change(searchInput, { target: { value: "NonExistentTicket999" } });
+            await waitFor(() => {
+                fireEvent.change(searchInput, { target: { value: "NonExistentTicket999" } });
+            });
             await waitFor(() => {
                 expect(screen.getByText(/No tickets match your search criteria\./i)).toBeInTheDocument();
             });
@@ -132,7 +134,9 @@ describe("MyTickets Component UI Tests", () => {
             const clearBtn = screen.getByRole("button", { name: /Clear Filters/i });
             expect(clearBtn).toBeInTheDocument();
             // Clicking Clear Filters resets the search
-            fireEvent.click(clearBtn);
+            await waitFor(() => {
+                fireEvent.click(clearBtn);
+            });
             expect(searchInput).toHaveValue("");
         });
     });

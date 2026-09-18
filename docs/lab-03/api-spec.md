@@ -136,7 +136,7 @@ Every error response returns a standardized JSON structure:
 }
 ```
 - **Responses**:
-  - `200 OK`: Password updated successfully. Sets `mustChangePassword = false`.
+  - `200 OK`: Password updated successfully. Sets `mustChangePassword = false`. Invalidates old session token server-side and issues rotated session via `Set-Cookie: toktickit_session=...; HttpOnly; Path=/; SameSite=Lax`.
     ```json
     {
       "message": "Password changed successfully"
