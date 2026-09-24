@@ -19,18 +19,6 @@ Lab 3 transitions from the temporary `X-Requester-Id` header simulation to stand
 - Client-supplied `requesterId` or `userId` in request bodies or query parameters are strictly ignored for authorization and ownership determinations; identity is exclusively extracted from the validated server session.
 - **Session Re-validation**: To enforce immediate account deactivation and password change requirements, session validation middleware must check `isActive` and `mustChangePassword` against the database on every authenticated request. If an account is deactivated (`isActive: false`), any session is immediately rejected with `401 Unauthorized`. If `mustChangePassword: true`, all operational endpoints reject the call with `403 Forbidden` until password change is fulfilled.
 
-#### 1.2.1 Transitional Dual-Authentication Support (Issue #5 only)
-**TEMPORARY - TO BE REMOVED IN ISSUE #6:**
-During Issue #5 implementation (server-side authorization layer), Requester-role endpoints accept authentication via EITHER:
-1. **Session cookies** (Lab 3+ standard), OR
-2. **Legacy `X-Requester-Id` header** (Lab 2 compatibility for regression testing)
-
-This dual-auth support exists solely to preserve Lab 2 regression test suite pass rates while the frontend migration to session authentication is completed in Issue #6. Once Issue #6 completes frontend migration, the `X-Requester-Id` authentication path will be removed entirely from the authorization middleware.
-
-For the existing attachment-download route only, the Lab 2 `?requesterId=` browser-download compatibility exception is also accepted during this transition. Issue #6 removes that exception with the header path.
-
-**Note**: IT Staff and Administrator endpoints require session authentication only - no legacy header support.
-
 ### 1.3 Standard Error Envelopes
 Every error response returns a standardized JSON structure:
 ```json

@@ -160,16 +160,21 @@ export interface Ticket {
 
 export async function createTicket(
   payload: CreateTicketPayload,
-  requesterId: number
+  requesterId?: number
 ): Promise<Ticket> {
   let res: Response;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (requesterId) {
+    headers["X-Requester-Id"] = String(requesterId);
+  }
+
   try {
     res = await fetch(`${API_URL}/api/tickets`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requester-Id": String(requesterId),
-      },
+      headers,
+      credentials: "include",
       body: JSON.stringify(payload),
     });
   } catch {
@@ -198,18 +203,22 @@ export async function createTicket(
 export async function uploadAttachment(
   ticketId: number,
   file: File,
-  requesterId: number
+  requesterId?: number
 ): Promise<Attachment> {
   const formData = new FormData();
   formData.append("file", file);
+
+  const headers: Record<string, string> = {};
+  if (requesterId) {
+    headers["X-Requester-Id"] = String(requesterId);
+  }
 
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
       method: "POST",
-      headers: {
-        "X-Requester-Id": String(requesterId),
-      },
+      headers,
+      credentials: "include",
       body: formData,
     });
   } catch {
@@ -271,7 +280,7 @@ export interface GetTicketsParams {
 
 export async function getTickets(
   params: GetTicketsParams = {},
-  requesterId: number
+  requesterId?: number
 ): Promise<PaginatedTickets> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
@@ -287,12 +296,16 @@ export async function getTickets(
   const queryString = query.toString();
   const url = `${API_URL}/api/tickets${queryString ? `?${queryString}` : ""}`;
 
+  const headers: Record<string, string> = {};
+  if (requesterId) {
+    headers["X-Requester-Id"] = String(requesterId);
+  }
+
   let res: Response;
   try {
     res = await fetch(url, {
-      headers: {
-        "X-Requester-Id": String(requesterId),
-      },
+      headers,
+      credentials: "include",
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -314,6 +327,16 @@ export async function getTickets(
   return res.json();
 }
 
+export interface PublicCommentItem {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  authorName: string;
+  authorRole: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface TicketDetail {
   id: number;
   ticketNumber: string;
@@ -324,6 +347,7 @@ export interface TicketDetail {
   description: string;
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
   currentStatus: string;
+  isRequesterResolved?: boolean;
   createdAt: string;
   updatedAt: string;
   requester: {
@@ -341,18 +365,23 @@ export interface TicketDetail {
     name: string;
   };
   attachments: Attachment[];
+  publicComments?: PublicCommentItem[];
 }
 
 export async function getTicketDetail(
   ticketId: number,
-  requesterId: number
+  requesterId?: number
 ): Promise<TicketDetail> {
   let res: Response;
+  const headers: Record<string, string> = {};
+  if (requesterId) {
+    headers["X-Requester-Id"] = String(requesterId);
+  }
+
   try {
     res = await fetch(`${API_URL}/api/tickets/${ticketId}`, {
-      headers: {
-        "X-Requester-Id": String(requesterId),
-      },
+      headers,
+      credentials: "include",
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -379,17 +408,22 @@ export async function getTicketDetail(
 export async function removeAttachment(
   ticketId: number,
   attachmentId: number,
-  requesterId: number,
+  requesterId?: number,
   removedReason?: string
 ): Promise<{ id: number; isRemoved: boolean; removedAt: string; removedReason?: string | null }> {
   let res: Response;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (requesterId) {
+    headers["X-Requester-Id"] = String(requesterId);
+  }
+
   try {
     res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/remove`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requester-Id": String(requesterId),
-      },
+      headers,
+      credentials: "include",
       body: JSON.stringify(removedReason ? { removedReason } : {}),
     });
   } catch {
@@ -415,9 +449,104 @@ export async function removeAttachment(
 export function getAttachmentDownloadUrl(
   ticketId: number,
   attachmentId: number,
-  requesterId: number
+  requesterId?: number
 ): string {
-  return `${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+  const query = requesterId ? `?requesterId=${requesterId}` : "";
+  return `${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download${query}`;
+}
+
+export async function getPublicComments(ticketId: number): Promise<PublicCommentItem[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch comments (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function postPublicComment(
+  ticketId: number,
+  content: string
+): Promise<PublicCommentItem> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ content }),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to post comment (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function updateResolveIndicator(
+  ticketId: number,
+  isRequesterResolved: boolean
+): Promise<{ id: number; ticketNumber: string; isRequesterResolved: boolean; currentStatus: string }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indicator`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ isRequesterResolved }),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update resolve indicator (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
 }
 
 // ---------------------------------------------------------------------------

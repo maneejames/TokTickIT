@@ -1,17 +1,14 @@
 import React, { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.js";
-import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { AppShell } from "./components/AppShell.js";
 import { Login } from "./components/Login.js";
 import { ChangePassword } from "./components/ChangePassword.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
-import { RequesterSelect } from "./components/RequesterSelect.js";
 
 function MainContent() {
   const { user, isLoading: authLoading, refreshUser, logout } = useAuth();
-  const { currentRequester, requesters, isLoading: requesterLoading } = useRequester();
 
   const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket" | "staff-queue" | "admin-users">("my-tickets");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(() => {
@@ -63,30 +60,19 @@ function MainContent() {
     );
   }
 
-  // 2. Unauthenticated: If legacy RequesterProvider is loaded with requesters in dev/test mode without an authenticated user,
-  // show RequesterSelect if currentRequester is not set; otherwise show Login.
+  // 2. Unauthenticated: Show Login screen
   if (!user) {
-    if (requesters.length > 0 && !currentRequester) {
-      return (
-        <AppShell activeNav={activeNav} onNavSelect={handleNavSelect}>
-          <RequesterSelect />
-        </AppShell>
-      );
-    }
-
-    if (!currentRequester) {
-      return (
-        <Login
-          onLoginSuccess={async () => {
-            await refreshUser();
-          }}
-        />
-      );
-    }
+    return (
+      <Login
+        onLoginSuccess={async () => {
+          await refreshUser();
+        }}
+      />
+    );
   }
 
   // 3. Mandatory Password Change per ui-spec.md §2.2 / §2.3
-  if (user && user.mustChangePassword) {
+  if (user.mustChangePassword) {
     return (
       <AppShell>
         <ChangePassword
@@ -101,25 +87,14 @@ function MainContent() {
     );
   }
 
-  // Active requester identity derived from user (or fallback to currentRequester in legacy tests)
-  const activeRequesterObj = user
-    ? {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        department: "IT",
-        isActive: true,
-      }
-    : currentRequester;
-
-  // If in legacy test mode and no requester selected yet, show RequesterSelect
-  if (!activeRequesterObj) {
-    return (
-      <AppShell activeNav={activeNav} onNavSelect={handleNavSelect}>
-        <RequesterSelect />
-      </AppShell>
-    );
-  }
+  // Active requester identity derived from authenticated user
+  const activeRequesterObj = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    department: "IT",
+    isActive: true,
+  };
 
   return (
     <AppShell activeNav={activeNav} onNavSelect={handleNavSelect}>
@@ -149,9 +124,8 @@ function MainContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <RequesterProvider>
-        <MainContent />
-      </RequesterProvider>
+      <MainContent />
     </AuthProvider>
   );
 }
+

@@ -3,10 +3,13 @@ import {
   TicketDetail,
   Attachment,
   RequesterUser,
+  PublicCommentItem,
   getTicketDetail,
   uploadAttachment,
   removeAttachment,
   getAttachmentDownloadUrl,
+  postPublicComment,
+  updateResolveIndicator,
 } from "../api.js";
 
 interface RequesterTicketDetailProps {
@@ -40,6 +43,71 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
   const [removalReason, setRemovalReason] = useState<string>("");
   const [removalError, setRemovalError] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
+
+  // Problem Appears Resolved state
+  const [isUpdatingResolved, setIsUpdatingResolved] = useState<boolean>(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  // Public Comments state
+  const [commentContent, setCommentContent] = useState<string>("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState<boolean>(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  const handleToggleResolved = async (checked: boolean) => {
+    if (!ticket || isUpdatingResolved) return;
+    setResolveError(null);
+    setIsUpdatingResolved(true);
+    const prevVal = ticket.isRequesterResolved ?? false;
+
+    // Optimistic update
+    setTicket({ ...ticket, isRequesterResolved: checked });
+
+    try {
+      const res = await updateResolveIndicator(ticket.id, checked);
+      setTicket((prev) => (prev ? { ...prev, isRequesterResolved: res.isRequesterResolved } : null));
+    } catch (err: unknown) {
+      setTicket((prev) => (prev ? { ...prev, isRequesterResolved: prevVal } : null));
+      const e = err as Error;
+      setResolveError(e.message || "Failed to update resolved status");
+    } finally {
+      setIsUpdatingResolved(false);
+    }
+  };
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticket || isSubmittingComment) return;
+    const trimmed = commentContent.trim();
+    if (!trimmed) {
+      setCommentError("Comment cannot be empty");
+      return;
+    }
+    if (trimmed.length > 2000) {
+      setCommentError("Comment exceeds 2000 characters limit");
+      return;
+    }
+
+    setCommentError(null);
+    setIsSubmittingComment(true);
+
+    try {
+      const newComment = await postPublicComment(ticket.id, trimmed);
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              publicComments: [...(prev.publicComments || []), newComment],
+            }
+          : null
+      );
+      setCommentContent("");
+    } catch (err: unknown) {
+      const e = err as Error;
+      setCommentError(e.message || "Failed to post comment");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   const fetchDetail = async () => {
     setIsLoading(true);
@@ -591,6 +659,165 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Problem Appears Resolved Section (ui-spec §3.3, BR-05) */}
+      <div className="zen-card p-4 p-md-5 mb-4" data-testid="problem-resolved-section">
+        <h2 className="h5 mb-3" style={{ color: "var(--color-text-main)", fontWeight: 700 }}>
+          Problem Appears Resolved
+        </h2>
+        <div className="d-flex flex-column gap-2">
+          <div className="form-check d-flex align-items-center gap-2">
+            <input
+              type="checkbox"
+              id="problemResolvedCheckbox"
+              className="form-check-input"
+              style={{ width: "20px", height: "20px", cursor: "pointer" }}
+              checked={ticket.isRequesterResolved ?? false}
+              onChange={(e) => handleToggleResolved(e.target.checked)}
+              disabled={isUpdatingResolved}
+            />
+            <label
+              htmlFor="problemResolvedCheckbox"
+              className="form-check-label fw-semibold"
+              style={{ cursor: "pointer", color: "var(--color-text-main)" }}
+            >
+              Mark as: Problem Appears Resolved
+            </label>
+          </div>
+
+          {ticket.isRequesterResolved && (
+            <div className="mt-2">
+              <span
+                className="badge"
+                style={{
+                  backgroundColor: "var(--color-accent-subtle)",
+                  color: "var(--color-primary-dark)",
+                  border: "1px solid var(--color-primary-light)",
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  borderRadius: "16px",
+                }}
+              >
+                ✓ Requester indicates issue resolved
+              </span>
+            </div>
+          )}
+
+          <p className="text-muted small mb-0 mt-1">
+            Does not formally close ticket. IT Staff will verify and complete resolution.
+          </p>
+
+          {resolveError && (
+            <div className="alert alert-danger py-2 mt-2 small" role="alert">
+              {resolveError}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Public Comments Section (ui-spec §3.3, AC-19) */}
+      <div className="zen-card p-4 p-md-5 mb-4" data-testid="public-comments-section">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h2 className="h5 mb-0" style={{ color: "var(--color-text-main)", fontWeight: 700 }}>
+            Public Comments
+          </h2>
+          <span className="small text-muted">
+            🌐 Visible to Requester and IT Staff
+          </span>
+        </div>
+
+        {/* Chronological Comment Stream */}
+        <div className="d-flex flex-column gap-3 mb-4" data-testid="public-comments-list">
+          {ticket.publicComments && ticket.publicComments.length > 0 ? (
+            ticket.publicComments.map((comment) => {
+              const isStaff = comment.authorRole === "IT_STAFF";
+              return (
+                <div
+                  key={comment.id}
+                  className="p-3 rounded-2"
+                  style={{
+                    backgroundColor: isStaff ? "#F0FDF4" : "var(--color-field-readonly)",
+                    border: `1px solid ${isStaff ? "#BBF7D0" : "var(--color-border)"}`,
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fw-semibold" style={{ color: "var(--color-text-main)", fontSize: "14px" }}>
+                        {comment.authorName}
+                      </span>
+                      <span
+                        className="badge"
+                        style={{
+                          backgroundColor: isStaff ? "#DCFCE7" : "#E0E7FF",
+                          color: isStaff ? "#166534" : "#3730A3",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          borderRadius: "8px",
+                          padding: "2px 6px",
+                        }}
+                      >
+                        {comment.authorRole === "IT_STAFF" ? "IT Staff" : "Requester"}
+                      </span>
+                    </div>
+                    <span className="small text-muted" style={{ fontSize: "12px" }}>
+                      {formatDate(comment.createdAt)}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      color: "var(--color-text-main)",
+                      fontSize: "14px",
+                      whiteSpace: "pre-wrap",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {comment.content}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-muted small mb-0">No public comments on this ticket yet.</p>
+          )}
+        </div>
+
+        {/* Comment Composer */}
+        <form onSubmit={handlePostComment} className="border-top pt-3">
+          <label htmlFor="publicCommentInput" className="form-label small fw-semibold text-muted text-uppercase mb-2">
+            Add Public Comment
+          </label>
+          <textarea
+            id="publicCommentInput"
+            className="zen-input w-100 mb-2"
+            rows={3}
+            maxLength={2000}
+            placeholder="Write a message visible to IT Staff..."
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            disabled={isSubmittingComment}
+          />
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="small text-muted">
+              {commentContent.length}/2000 characters
+            </span>
+            <button
+              type="submit"
+              className="zen-btn-primary"
+              disabled={isSubmittingComment || !commentContent.trim()}
+              style={{ padding: "8px 16px", fontSize: "14px" }}
+            >
+              {isSubmittingComment ? "Posting..." : "Post Public Comment"}
+            </button>
+          </div>
+
+          {commentError && (
+            <div className="alert alert-danger py-2 mt-2 small" role="alert">
+              {commentError}
+            </div>
+          )}
+        </form>
       </div>
 
       {/* Attachment Removal Confirmation Modal */}

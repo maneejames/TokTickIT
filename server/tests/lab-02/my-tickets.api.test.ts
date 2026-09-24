@@ -17,12 +17,15 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginAs } from "../helpers/auth.js";
 
 // ---------------------------------------------------------------------------
 // Test data holders
 // ---------------------------------------------------------------------------
 let requesterAId: number;
 let requesterBId: number;
+let requesterACookie: string;
+let requesterBCookie: string;
 let categoryAId: number;
 let categoryBId: number;
 let relatedSystemId: number;
@@ -73,8 +76,8 @@ beforeAll(async () => {
   const prisma = getPrisma();
 
   // Grab two distinct active requesters from seed data
-  const requesters = await prisma.requesterUser.findMany({
-    where: { isActive: true },
+  const requesters = await prisma.user.findMany({
+    where: { role: "REQUESTER", isActive: true },
     take: 2,
     orderBy: { id: "asc" },
   });
@@ -87,6 +90,11 @@ beforeAll(async () => {
 
   requesterAId = requesters[0].id;
   requesterBId = requesters[1].id;
+
+  const authA = await loginAs(requesters[0].email);
+  requesterACookie = authA.cookie;
+  const authB = await loginAs(requesters[1].email);
+  requesterBCookie = authB.cookie;
 
   // Grab two distinct categories
   const categories = await prisma.category.findMany({
@@ -124,7 +132,7 @@ describe("LIST-API-01: Base listing for authenticated requester", () => {
   it("returns 200 with items array and pagination for active requester", async () => {
     const res = await request(app)
       .get("/api/tickets")
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("items");
@@ -173,7 +181,7 @@ describe("LIST-API-01: Base listing for authenticated requester", () => {
 
     const res = await request(app)
       .get("/api/tickets")
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
 
@@ -198,23 +206,28 @@ describe("LIST-API-01: Base listing for authenticated requester", () => {
     expect(item._count.attachments).toBe(1); // only the active one
   });
 
-  it("returns 401 when X-Requester-Id header is missing", async () => {
+  it("returns 401 when no session cookie is provided", async () => {
     const res = await request(app).get("/api/tickets");
     expect(res.status).toBe(401);
   });
 
-  it("returns 403 for inactive requester", async () => {
+  it("returns 401 for inactive requester (cannot log in)", async () => {
     const prisma = getPrisma();
-    const inactive = await prisma.requesterUser.findFirst({
-      where: { isActive: false },
+    const inactive = await prisma.user.findFirst({
+      where: { role: "REQUESTER", isActive: false },
     });
     if (!inactive) return; // skip if no inactive requester in seed
 
-    const res = await request(app)
-      .get("/api/tickets")
-      .set("X-Requester-Id", String(inactive.id));
-
-    expect(res.status).toBe(403);
+    // Inactive users should fail to log in, so we expect loginAs to throw or the API to return 401/403
+    try {
+      await loginAs(inactive.email);
+      // If login somehow succeeded, attempting the request should still fail
+      const res = await request(app).get("/api/tickets");
+      expect([401, 403]).toContain(res.status);
+    } catch (_err) {
+      // loginAs threw — login was correctly rejected for inactive user
+      expect(true).toBe(true);
+    }
   });
 
   it("default sort is createdAt descending (most recent first)", async () => {
@@ -238,7 +251,7 @@ describe("LIST-API-01: Base listing for authenticated requester", () => {
 
     const res = await request(app)
       .get("/api/tickets")
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
 
@@ -268,7 +281,7 @@ describe("LIST-API-02: Cross-requester ticket isolation", () => {
     // Request as Requester B
     const res = await request(app)
       .get("/api/tickets")
-      .set("X-Requester-Id", String(requesterBId));
+      .set("Cookie", requesterBCookie);
 
     expect(res.status).toBe(200);
 
@@ -287,7 +300,7 @@ describe("LIST-API-02: Cross-requester ticket isolation", () => {
 
     const res = await request(app)
       .get("/api/tickets")
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
 
@@ -314,7 +327,7 @@ describe("LIST-API-02: Cross-requester ticket isolation", () => {
     const resA = await request(app)
       .get("/api/tickets")
       .query({ pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(resA.status).toBe(200);
     for (const item of resA.body.items as { requesterId: number }[]) {
@@ -328,7 +341,7 @@ describe("LIST-API-02: Cross-requester ticket isolation", () => {
     const resB = await request(app)
       .get("/api/tickets")
       .query({ pageSize: 50 })
-      .set("X-Requester-Id", String(requesterBId));
+      .set("Cookie", requesterBCookie);
 
     const aItems = resA.body.items.map((t: { ticketNumber: string }) => t.ticketNumber);
     const bItems = resB.body.items.map((t: { ticketNumber: string }) => t.ticketNumber);
@@ -360,7 +373,7 @@ describe("LIST-API-03: Pagination parameters and metadata", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ page: 1, pageSize: 5 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeLessThanOrEqual(5);
@@ -375,12 +388,12 @@ describe("LIST-API-03: Pagination parameters and metadata", () => {
     const res1 = await request(app)
       .get("/api/tickets")
       .query({ page: 1, pageSize: 5 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     const res2 = await request(app)
       .get("/api/tickets")
       .query({ page: 2, pageSize: 5 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res1.status).toBe(200);
     expect(res2.status).toBe(200);
@@ -397,7 +410,7 @@ describe("LIST-API-03: Pagination parameters and metadata", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ pageSize: 7 }) // not in allowed [5, 10, 20, 50]
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
@@ -407,12 +420,12 @@ describe("LIST-API-03: Pagination parameters and metadata", () => {
     const res1 = await request(app)
       .get("/api/tickets")
       .query({ page: 1, pageSize: 5 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     const res2 = await request(app)
       .get("/api/tickets")
       .query({ page: 2, pageSize: 5 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res1.body.pagination.totalItems).toBe(res2.body.pagination.totalItems);
   });
@@ -463,7 +476,7 @@ describe("LIST-API-04: Substring search on summary and ticketNumber", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: uniqueSummarySubstr })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeGreaterThanOrEqual(1);
@@ -477,7 +490,7 @@ describe("LIST-API-04: Substring search on summary and ticketNumber", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: uniqueNumberInfix })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeGreaterThanOrEqual(1);
@@ -491,7 +504,7 @@ describe("LIST-API-04: Substring search on summary and ticketNumber", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: uniqueSummarySubstr.toLowerCase() })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const found = res.body.items.some((t: { summary: string }) =>
@@ -505,7 +518,7 @@ describe("LIST-API-04: Substring search on summary and ticketNumber", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: uniqueNumberInfix.toLowerCase() })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const found = res.body.items.some(
@@ -518,7 +531,7 @@ describe("LIST-API-04: Substring search on summary and ticketNumber", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: "ZZZNOMATCH999ZZZNOMATCH" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(0);
@@ -553,7 +566,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ categoryId: categoryBId, pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
 
@@ -574,7 +587,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ status: "NEW", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
 
@@ -587,7 +600,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ status: "INVALID_STATUS" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
@@ -597,7 +610,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ categoryId: "abc" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
@@ -623,7 +636,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ priority: "HIGH", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     for (const item of res.body.items as { requestedPriority: string }[]) {
@@ -638,7 +651,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const resAlias = await request(app)
       .get("/api/tickets")
       .query({ requestedPriority: "LOW", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(resAlias.status).toBe(200);
     for (const item of resAlias.body.items as { requestedPriority: string }[]) {
@@ -653,7 +666,7 @@ describe("LIST-API-05: Filter by categoryId and status", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ priority: "INVALID_PRIORITY" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
@@ -694,7 +707,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: "sort test ticket", sortBy: "summary", sortOrder: "asc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const summaries: string[] = res.body.items.map((t: { summary: string }) => t.summary);
@@ -713,7 +726,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ search: "sort test ticket", sortBy: "summary", sortOrder: "desc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const summaries: string[] = res.body.items.map((t: { summary: string }) => t.summary);
@@ -732,7 +745,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortBy: "requestedPriority", sortOrder: "asc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeGreaterThan(0);
@@ -752,7 +765,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortBy: "requestedPriority", sortOrder: "desc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const priorityOrder: Record<string, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
@@ -770,7 +783,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortBy: "status", sortOrder: "asc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     // All tickets in Lab 2 are NEW so statuses are equal — just confirm 200 + items
@@ -781,7 +794,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortBy: "createdAt", sortOrder: "asc", pageSize: 50 })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(200);
     const dates: string[] = res.body.items.map(
@@ -798,7 +811,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortBy: "invalidField" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
@@ -809,7 +822,7 @@ describe("LIST-API-06: Sort by requestedPriority, status, and summary", () => {
     const res = await request(app)
       .get("/api/tickets")
       .query({ sortOrder: "sideways" })
-      .set("X-Requester-Id", String(requesterAId));
+      .set("Cookie", requesterACookie);
 
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");

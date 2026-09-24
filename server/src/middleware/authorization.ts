@@ -1,17 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { getPrisma } from "../prisma.js";
-import { authenticateSession } from "../auth.js";
 
 /**
  * Authorization middleware factory functions for role-based and ownership-based access control.
  * Implements specification.md §6 Authorization Matrix and BR-06, BR-07, BR-08.
  * 
- * TRANSITIONAL DUAL-AUTH SUPPORT (Issue #5):
- * For Requester-role endpoints only, accepts EITHER:
- * - Session authentication (Lab 3+), OR
- * - Legacy X-Requester-Id header (Lab 2 compatibility)
- * 
- * Issue #6 will remove the X-Requester-Id path once frontend fully migrates to sessions.
+ * Session authentication is the sole path (Issue #6).
  */
 
 type Role = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
@@ -20,98 +14,29 @@ type Role = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
  * Middleware to require authentication and optionally enforce mustChangePassword barrier.
  * Returns 401 if not authenticated.
  * Returns 403 if mustChangePassword is true (unless bypassPasswordCheck is true).
- * 
- * TRANSITIONAL: For Requester-role endpoints, also accepts legacy X-Requester-Id header.
  */
-export function requireAuth(
-  bypassPasswordCheck = false,
-  allowLegacyRequester = false,
-  allowLegacyRequesterQuery = false,
-) {
+export function requireAuth(bypassPasswordCheck = false) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // First try: session authentication
-    if (req.user) {
-      // BR-02 / AC-02: Block operational endpoints if mustChangePassword is true
-      if (!bypassPasswordCheck && req.user.mustChangePassword) {
-        return res.status(403).json({
-          error: {
-            code: "FORBIDDEN",
-            message: "Mandatory password change required before accessing application resources",
-          },
-        });
-      }
-      return next();
+    if (!req.user) {
+      return res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required",
+        },
+      });
     }
 
-    // Second try: legacy X-Requester-Id header (transitional support for Lab 2 regression)
-    const headerVal = allowLegacyRequester
-      ? req.header("x-requester-id") ??
-        (allowLegacyRequesterQuery ? req.query.requesterId?.toString() : undefined)
-      : undefined;
-    if (headerVal) {
-      const requesterId = Number(headerVal);
-      if (!Number.isInteger(requesterId) || requesterId <= 0) {
-        return res.status(404).json({
-          error: {
-            code: "NOT_FOUND",
-            message: "Requester not found",
-          },
-        });
-      }
-
-      try {
-        const prisma = getPrisma();
-        const legacyRequester = await prisma.requesterUser.findUnique({
-          where: { id: requesterId },
-        });
-
-        if (!legacyRequester) {
-          return res.status(404).json({
-            error: {
-              code: "NOT_FOUND",
-              message: "Requester not found",
-            },
-          });
-        }
-
-        if (!legacyRequester.isActive) {
-          return res.status(403).json({
-            error: {
-              code: "FORBIDDEN",
-              message: "Requester is inactive",
-            },
-          });
-        }
-
-        // Populate req.user with legacy requester data in User format
-        // This allows downstream middleware to treat it as authenticated
-        req.user = {
-          id: legacyRequester.id,
-          name: legacyRequester.name,
-          email: legacyRequester.email,
-          role: "REQUESTER" as Role,
-          isActive: legacyRequester.isActive,
-          mustChangePassword: false, // Legacy users don't have password change requirement
-        };
-
-        return next();
-      } catch (_err) {
-        return res.status(500).json({
-          error: {
-            code: "INTERNAL_ERROR",
-            message: "Failed to validate requester",
-          },
-        });
-      }
+    // BR-02 / AC-02: Block operational endpoints if mustChangePassword is true
+    if (!bypassPasswordCheck && req.user.mustChangePassword) {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Mandatory password change required before accessing application resources",
+        },
+      });
     }
 
-    // No authentication found
-    return res.status(401).json({
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      },
-    });
+    return next();
   };
 }
 
@@ -123,7 +48,6 @@ export function requireAuth(
 export function requireRole(...allowedRoles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      // Should never happen if requireAuth is properly chained
       return res.status(401).json({
         error: {
           code: "UNAUTHORIZED",
@@ -196,7 +120,7 @@ export function requireTicketOwnership(ticketIdParam = "id", notFoundMessage = "
           return res.status(404).json({
             error: {
               code: "NOT_FOUND",
-            message: notFoundMessage,
+              message: notFoundMessage,
             },
           });
         }
@@ -236,13 +160,13 @@ export function requireAuthAndRole(allowedRoles: Role[], bypassPasswordCheck = f
  * Convenience function that chains requireAuth and requireTicketOwnership.
  */
 export function requireAuthAndTicketAccess(ticketIdParam = "id") {
-  return [requireAuth(false, true), requireTicketOwnership(ticketIdParam)];
+  return [requireAuth(), requireTicketOwnership(ticketIdParam)];
 }
 
 /** Requester-only ticket operation, including ownership enforcement. */
 export function requireRequesterTicketAccess(ticketIdParam = "id", notFoundMessage = "Ticket not found") {
   return [
-    requireAuth(false, true),
+    requireAuth(),
     requireRole("REQUESTER"),
     requireTicketOwnership(ticketIdParam, notFoundMessage),
   ];
@@ -253,7 +177,7 @@ export function requireRequesterTicketAccess(ticketIdParam = "id", notFoundMessa
  * Returns 403 for IT_STAFF and ADMINISTRATOR.
  */
 export function requireRequesterOnly() {
-  return [requireAuth(false, true), requireRole("REQUESTER")];
+  return [requireAuth(), requireRole("REQUESTER")];
 }
 
 /**
