@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
-import { Priority, Prisma } from "@prisma/client";
+import { Priority, Prisma, TicketStatus } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { requireRequester } from "./middleware/requesterAuth.js";
 import { generateTicketNumber } from "./services/ticketNumber.js";
@@ -22,6 +22,7 @@ import bcrypt from "bcryptjs";
 import {
   requireAuth,
   requireRequesterOnly,
+  requireITStaffOnly,
   requireAuthAndTicketAccess,
   requireTicketOwnership,
   requireRequesterTicketAccess,
@@ -675,7 +676,7 @@ app.get("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Res
   const rawPriority = req.query.priority ?? req.query.requestedPriority;
   let priorityFilter: Priority | undefined;
   if (rawPriority !== undefined && rawPriority !== "") {
-    if (!VALID_PRIORITIES.includes(rawPriority as Priority)) {
+    if (!VALID_PRIORITIES.includes(rawPriority as any)) {
       validationErrors.push({
         field: "priority",
         message: `priority must be one of: ${VALID_PRIORITIES.join(", ")}`,
@@ -807,7 +808,7 @@ app.get("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Res
         ticketNumber: string;
         summary: string;
         requestedPriority: Priority;
-        currentStatus: "NEW";
+        currentStatus: TicketStatus;
         createdAt: Date;
         updatedAt: Date;
         category: { id: number; name: string };
@@ -1653,6 +1654,372 @@ app.get(
         error: {
           code: "INTERNAL_ERROR",
           message: "Failed to fetch notes",
+        },
+      });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 7 — IT Staff Ticket Queue: GET /api/staff/tickets
+// ---------------------------------------------------------------------------
+const ALLOWED_STAFF_SORT_BY = [
+  "createdAt",
+  "updatedAt",
+  "itPriority",
+  "status",
+  "ticketNumber",
+] as const;
+const ALLOWED_STAFF_SORT_ORDER = ["asc", "desc"] as const;
+const ALLOWED_STAFF_PAGE_SIZES = [5, 10, 20, 50] as const;
+type StaffSortBy = (typeof ALLOWED_STAFF_SORT_BY)[number];
+type StaffSortOrder = (typeof ALLOWED_STAFF_SORT_ORDER)[number];
+
+const VALID_TICKET_STATUSES = [
+  "NEW",
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "RESOLVED",
+  "CLOSED",
+  "REOPENED",
+  "CANCELLED",
+] as const;
+
+const VALID_STAFF_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+
+app.get(
+  "/api/staff/tickets",
+  ...requireITStaffOnly(),
+  async (req: Request, res: Response) => {
+    const validationErrors: { field: string; message: string }[] = [];
+
+    // search (optional, substring across ticketNumber, summary, requester.name)
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+
+    // categoryId (optional, positive integer)
+    let categoryIdFilter: number | undefined;
+    if (req.query.categoryId !== undefined && req.query.categoryId !== "") {
+      const parsed = Number(req.query.categoryId);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        validationErrors.push({
+          field: "categoryId",
+          message: "categoryId must be a positive integer",
+        });
+      } else {
+        categoryIdFilter = parsed;
+      }
+    }
+
+    // status (optional, single or comma-separated TicketStatus values)
+    let statusFilter: TicketStatus[] | undefined;
+    if (req.query.status !== undefined && req.query.status !== "") {
+      const rawStatuses = String(req.query.status)
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean);
+
+      const invalidStatus = rawStatuses.find(
+        (s) => !VALID_TICKET_STATUSES.includes(s as any)
+      );
+
+      if (invalidStatus || rawStatuses.length === 0) {
+        validationErrors.push({
+          field: "status",
+          message: `status must be one or more of: ${VALID_TICKET_STATUSES.join(", ")}`,
+        });
+      } else {
+        statusFilter = rawStatuses as TicketStatus[];
+      }
+    }
+
+    // priority (optional, LOW | MEDIUM | HIGH | URGENT, filters itPriority)
+    let priorityFilter: Priority | undefined;
+    if (req.query.priority !== undefined && req.query.priority !== "") {
+      const normalizedPriority = String(req.query.priority).trim().toUpperCase();
+      if (!VALID_STAFF_PRIORITIES.includes(normalizedPriority as any)) {
+        validationErrors.push({
+          field: "priority",
+          message: `priority must be one of: ${VALID_STAFF_PRIORITIES.join(", ")}`,
+        });
+      } else {
+        priorityFilter = normalizedPriority as Priority;
+      }
+    }
+
+    // ownerId (optional, positive integer or 'unassigned')
+    let ownerIdFilter: number | null | undefined;
+    if (req.query.ownerId !== undefined && req.query.ownerId !== "") {
+      const rawOwner = String(req.query.ownerId).trim().toLowerCase();
+      if (rawOwner === "unassigned") {
+        ownerIdFilter = null;
+      } else {
+        const parsed = Number(rawOwner);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          validationErrors.push({
+            field: "ownerId",
+            message: "ownerId must be a positive integer or 'unassigned'",
+          });
+        } else {
+          ownerIdFilter = parsed;
+        }
+      }
+    }
+
+    // sortBy (optional, default "createdAt")
+    let sortBy: StaffSortBy = "createdAt";
+    if (req.query.sortBy !== undefined && req.query.sortBy !== "") {
+      if (!ALLOWED_STAFF_SORT_BY.includes(req.query.sortBy as StaffSortBy)) {
+        validationErrors.push({
+          field: "sortBy",
+          message: `sortBy must be one of: ${ALLOWED_STAFF_SORT_BY.join(", ")}`,
+        });
+      } else {
+        sortBy = req.query.sortBy as StaffSortBy;
+      }
+    }
+
+    // sortOrder (optional, default "desc")
+    let sortOrder: StaffSortOrder = "desc";
+    if (req.query.sortOrder !== undefined && req.query.sortOrder !== "") {
+      if (!ALLOWED_STAFF_SORT_ORDER.includes(req.query.sortOrder as StaffSortOrder)) {
+        validationErrors.push({
+          field: "sortOrder",
+          message: "sortOrder must be 'asc' or 'desc'",
+        });
+      } else {
+        sortOrder = req.query.sortOrder as StaffSortOrder;
+      }
+    }
+
+    // page (optional, default 1, must be >= 1)
+    let page = 1;
+    if (req.query.page !== undefined && req.query.page !== "") {
+      const parsed = Number(req.query.page);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        validationErrors.push({
+          field: "page",
+          message: "page must be a positive integer",
+        });
+      } else {
+        page = parsed;
+      }
+    }
+
+    // pageSize (optional, default 10, must be in [5, 10, 20, 50])
+    let pageSize = 10;
+    if (req.query.pageSize !== undefined && req.query.pageSize !== "") {
+      const parsed = Number(req.query.pageSize);
+      if (!ALLOWED_STAFF_PAGE_SIZES.includes(parsed as any)) {
+        validationErrors.push({
+          field: "pageSize",
+          message: `pageSize must be one of: ${ALLOWED_STAFF_PAGE_SIZES.join(", ")}`,
+        });
+      } else {
+        pageSize = parsed;
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid query parameters",
+          details: validationErrors,
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const skip = (page - 1) * pageSize;
+
+      // Build Prisma WhereInput
+      const where: Prisma.TicketWhereInput = {
+        ...(search && {
+          OR: [
+            { ticketNumber: { contains: search, mode: "insensitive" } },
+            { summary: { contains: search, mode: "insensitive" } },
+            { requester: { name: { contains: search, mode: "insensitive" } } },
+          ],
+        }),
+        ...(categoryIdFilter !== undefined && { categoryId: categoryIdFilter }),
+        ...(statusFilter && {
+          currentStatus: statusFilter.length === 1 ? statusFilter[0] : { in: statusFilter },
+        }),
+        ...(priorityFilter !== undefined && { itPriority: priorityFilter }),
+        ...(ownerIdFilter !== undefined && {
+          ownerId: ownerIdFilter === null ? null : ownerIdFilter,
+        }),
+      };
+
+      // Priority sort order custom handling: LOW=1, MEDIUM=2, HIGH=3, URGENT=4
+      if (sortBy === "itPriority") {
+        const priorityOrderSql =
+          sortOrder === "asc"
+            ? `CASE "itPriority" WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'HIGH' THEN 3 WHEN 'URGENT' THEN 4 ELSE 5 END ASC`
+            : `CASE "itPriority" WHEN 'URGENT' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC`;
+
+        // Fetch all matching IDs ordered
+        // We can build the raw SQL where or use Prisma to get total and filtered tickets
+        // For simplicity and 100% Postgres precision, count and order IDs via raw or standard
+        // Given Prisma doesn't sort enums by custom order natively:
+        const whereConditions: string[] = [];
+        const rawParams: unknown[] = [];
+        let pIdx = 1;
+
+        if (search) {
+          whereConditions.push(
+            `("tickets"."ticketNumber" ILIKE $${pIdx} OR "tickets"."summary" ILIKE $${pIdx + 1} OR "u"."name" ILIKE $${pIdx + 2})`
+          );
+          rawParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+          pIdx += 3;
+        }
+
+        if (categoryIdFilter !== undefined) {
+          whereConditions.push(`"tickets"."categoryId" = $${pIdx++}`);
+          rawParams.push(categoryIdFilter);
+        }
+
+        if (statusFilter && statusFilter.length > 0) {
+          const statusPlaceholders = statusFilter.map((s) => `'${s}'::"TicketStatus"`).join(", ");
+          whereConditions.push(`"tickets"."currentStatus" IN (${statusPlaceholders})`);
+        }
+
+        if (priorityFilter !== undefined) {
+          whereConditions.push(`"tickets"."itPriority" = $${pIdx++}::"Priority"`);
+          rawParams.push(priorityFilter);
+        }
+
+        if (ownerIdFilter !== undefined) {
+          if (ownerIdFilter === null) {
+            whereConditions.push(`"tickets"."ownerId" IS NULL`);
+          } else {
+            whereConditions.push(`"tickets"."ownerId" = $${pIdx++}`);
+            rawParams.push(ownerIdFilter);
+          }
+        }
+
+        const whereSql = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+
+        const idRows = await prisma.$queryRawUnsafe<{ id: number }[]>(
+          `SELECT "tickets".id FROM tickets LEFT JOIN users u ON "tickets"."requesterId" = u.id ${whereSql} ORDER BY ${priorityOrderSql}, "tickets".id ${sortOrder.toUpperCase()}`,
+          ...rawParams
+        );
+
+        const totalItems = idRows.length;
+        const totalPages = Math.ceil(totalItems / pageSize) || 1;
+        const pagedIds = idRows.slice(skip, skip + pageSize).map((r) => r.id);
+
+        const ticketsMap = new Map<number, any>();
+        if (pagedIds.length > 0) {
+          const tickets = await prisma.ticket.findMany({
+            where: { id: { in: pagedIds } },
+            select: {
+              id: true,
+              ticketNumber: true,
+              summary: true,
+              category: { select: { id: true, name: true } },
+              requestedPriority: true,
+              itPriority: true,
+              currentStatus: true,
+              owner: { select: { id: true, name: true } },
+              requester: { select: { id: true, name: true } },
+              isRequesterResolved: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
+          for (const t of tickets) ticketsMap.set(t.id, t);
+        }
+
+        const items = pagedIds.map((id) => {
+          const t = ticketsMap.get(id);
+          if (!t) return null;
+          return {
+            id: t.id,
+            ticketNumber: t.ticketNumber,
+            summary: t.summary,
+            category: t.category,
+            requestedPriority: t.requestedPriority,
+            itPriority: t.itPriority,
+            status: t.currentStatus,
+            owner: t.owner ? { id: t.owner.id, name: t.owner.name } : null,
+            requester: { id: t.requester.id, name: t.requester.name },
+            isRequesterResolved: t.isRequesterResolved,
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt,
+          };
+        }).filter(Boolean);
+
+        return res.status(200).json({
+          items,
+          pagination: { page, pageSize, totalItems, totalPages },
+        });
+      }
+
+      // Standard Prisma orderBy
+      const fieldMap: Record<Exclude<StaffSortBy, "itPriority">, string> = {
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+        status: "currentStatus",
+        ticketNumber: "ticketNumber",
+      };
+
+      const orderByField = fieldMap[sortBy as Exclude<StaffSortBy, "itPriority">];
+      const orderBy = { [orderByField]: sortOrder };
+
+      const [tickets, totalItems] = await Promise.all([
+        prisma.ticket.findMany({
+          where,
+          orderBy,
+          skip,
+          take: pageSize,
+          select: {
+            id: true,
+            ticketNumber: true,
+            summary: true,
+            category: { select: { id: true, name: true } },
+            requestedPriority: true,
+            itPriority: true,
+            currentStatus: true,
+            owner: { select: { id: true, name: true } },
+            requester: { select: { id: true, name: true } },
+            isRequesterResolved: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.ticket.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+      const items = tickets.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        category: t.category,
+        requestedPriority: t.requestedPriority,
+        itPriority: t.itPriority,
+        status: t.currentStatus,
+        owner: t.owner ? { id: t.owner.id, name: t.owner.name } : null,
+        requester: { id: t.requester.id, name: t.requester.name },
+        isRequesterResolved: t.isRequesterResolved,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      }));
+
+      return res.status(200).json({
+        items,
+        pagination: { page, pageSize, totalItems, totalPages },
+      });
+    } catch (err: unknown) {
+      console.error("GET /api/staff/tickets error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to fetch staff tickets",
         },
       });
     }

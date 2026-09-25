@@ -678,4 +678,112 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<{ 
   return res.json();
 }
 
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 7 — IT Staff Ticket Queue Types & Functions
+// ---------------------------------------------------------------------------
+
+export type StaffTicketStatus =
+  | "NEW"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_REQUESTER"
+  | "RESOLVED"
+  | "CLOSED"
+  | "REOPENED"
+  | "CANCELLED";
+
+export type StaffPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+export interface StaffQueueTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  category: { id: number; name: string };
+  requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority: StaffPriority;
+  status: StaffTicketStatus;
+  owner: { id: number; name: string } | null;
+  requester: { id: number; name: string };
+  isRequesterResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffQueuePagination {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface StaffQueueResponse {
+  items: StaffQueueTicket[];
+  pagination: StaffQueuePagination;
+}
+
+export interface QueueFilterParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  priority?: string;
+  categoryId?: number;
+  ownerId?: string | number;
+  sortBy?: "createdAt" | "updatedAt" | "itPriority" | "status" | "ticketNumber";
+  sortOrder?: "asc" | "desc";
+}
+
+export async function getStaffTickets(params: QueueFilterParams = {}): Promise<StaffQueueResponse> {
+  const query = new URLSearchParams();
+
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.pageSize !== undefined) query.set("pageSize", String(params.pageSize));
+  if (params.search) query.set("search", params.search);
+  if (params.status && params.status !== "ALL") query.set("status", params.status);
+  if (params.priority && params.priority !== "ALL") query.set("priority", params.priority);
+  if (params.categoryId !== undefined && params.categoryId > 0) {
+    query.set("categoryId", String(params.categoryId));
+  }
+  if (params.ownerId !== undefined && params.ownerId !== "ALL" && params.ownerId !== "") {
+    query.set("ownerId", String(params.ownerId));
+  }
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+
+  const queryString = query.toString();
+  const url = `${API_URL}/api/staff/tickets${queryString ? `?${queryString}` : ""}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  if (res.status === 403) {
+    throw new Error("FORBIDDEN");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to load queue (HTTP ${res.status})`;
+    try {
+      const errData = await res.json();
+      if (errData?.error?.message) {
+        errorMsg = errData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
 

@@ -6,15 +6,28 @@ import { ChangePassword } from "./components/ChangePassword.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 
 function MainContent() {
   const { user, isLoading: authLoading, refreshUser, logout } = useAuth();
 
-  const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket" | "staff-queue" | "admin-users">("my-tickets");
+  const [activeNav, setActiveNav] = useState<"my-tickets" | "create-ticket" | "staff-queue" | "admin-users">(() => {
+    if (window.location.pathname.startsWith("/staff/queue")) return "staff-queue";
+    return "my-tickets";
+  });
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(() => {
     const match = window.location.pathname.match(/^\/tickets\/(\d+)$/);
     return match ? Number(match[1]) : null;
   });
+
+  // Default landing route based on role when activeNav hasn't been set by URL
+  React.useEffect(() => {
+    if (user && !user.mustChangePassword) {
+      if (user.role === "IT_STAFF" && activeNav === "my-tickets" && !selectedTicketId && !window.location.pathname.startsWith("/tickets")) {
+        setActiveNav("staff-queue");
+      }
+    }
+  }, [user]);
 
   const handleNavigateToTicketDetail = (ticketId: number) => {
     setSelectedTicketId(ticketId);
@@ -103,6 +116,14 @@ function MainContent() {
           ticketId={selectedTicketId}
           currentRequester={activeRequesterObj}
           onNavigateToMyTickets={handleBackToMyTickets}
+        />
+      ) : activeNav === "staff-queue" ? (
+        <StaffTicketQueue
+          currentUser={user}
+          onOpenTicket={(ticketId) => {
+            // For now, in Issue #7, routes can open ticket or navigate
+            handleNavigateToTicketDetail(ticketId);
+          }}
         />
       ) : activeNav === "create-ticket" ? (
         <CreateTicket
