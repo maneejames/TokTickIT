@@ -1,6 +1,5 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext.js";
-import { useRequester } from "../context/RequesterContext.js";
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -14,7 +13,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   onNavSelect,
 }) => {
   const { user, logout } = useAuth();
-  const { currentRequester, changeRequester } = useRequester();
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
@@ -183,37 +181,6 @@ export const AppShell: React.FC<AppShellProps> = ({
                 }}
               >
                 Logout
-              </button>
-            </div>
-          ) : currentRequester ? (
-            <div className="d-flex align-items-center gap-3">
-              <div
-                className="d-flex align-items-center px-3 py-1 rounded-pill"
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  color: "#FFFFFF",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                }}
-              >
-                <span className="me-1" aria-hidden="true">👤</span>
-                <span>
-                  {currentRequester.name} ({currentRequester.department})
-                </span>
-              </div>
-              <button
-                type="button"
-                className="zen-btn-secondary"
-                onClick={changeRequester}
-                style={{
-                  fontSize: "12px",
-                  padding: "4px 10px",
-                  backgroundColor: "#FFFFFF",
-                  color: "var(--color-primary-green)",
-                  borderColor: "#FFFFFF",
-                }}
-              >
-                Change Requester
               </button>
             </div>
           ) : null}

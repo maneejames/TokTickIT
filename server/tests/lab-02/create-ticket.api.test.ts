@@ -3,18 +3,23 @@ import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
 import { generateTicketNumber } from "../../src/services/ticketNumber.js";
+import { loginAs } from "../helpers/auth.js";
 
 describe("Create Ticket Tests", () => {
   let activeRequesterId: number;
+  let requesterCookie: string;
   let validCategoryId: number;
   let validRelatedSystemId: number;
 
   beforeAll(async () => {
     const prisma = getPrisma();
-    const requester = await prisma.requesterUser.findFirst({
-      where: { isActive: true },
+    const requester = await prisma.user.findFirst({
+      where: { role: "REQUESTER", isActive: true, mustChangePassword: false },
     });
     activeRequesterId = requester!.id;
+
+    const auth = await loginAs(requester!.email);
+    requesterCookie = auth.cookie;
 
     const category = await prisma.category.findFirst({
       where: { isActive: true },
@@ -110,7 +115,7 @@ describe("Create Ticket Tests", () => {
 
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -146,7 +151,7 @@ describe("Create Ticket Tests", () => {
 
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -159,7 +164,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request with field errors when required fields are missing", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({});
 
       expect(res.status).toBe(400);
@@ -177,7 +182,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request if summary is shorter than 5 chars", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -193,7 +198,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request if summary is longer than 100 chars", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -209,7 +214,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request if description is shorter than 10 chars", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -225,7 +230,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request if description is longer than 2000 chars", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -241,7 +246,7 @@ describe("Create Ticket Tests", () => {
     it("returns 400 Bad Request if categoryId or relatedSystemId does not exist", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: 99999,
           relatedSystemId: 99999,
@@ -261,7 +266,7 @@ describe("Create Ticket Tests", () => {
     it("rejects summary with spaces only (e.g. '   ') with 400 Bad Request", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -277,7 +282,7 @@ describe("Create Ticket Tests", () => {
     it("rejects description with spaces only with 400 Bad Request", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,
@@ -293,7 +298,7 @@ describe("Create Ticket Tests", () => {
     it("trims leading/trailing whitespace before storing in database", async () => {
       const res = await request(app)
         .post("/api/tickets")
-        .set("X-Requester-Id", String(activeRequesterId))
+        .set("Cookie", requesterCookie)
         .send({
           categoryId: validCategoryId,
           relatedSystemId: validRelatedSystemId,

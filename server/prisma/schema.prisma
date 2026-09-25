@@ -34,17 +34,6 @@ enum TicketStatus {
   CANCELLED
 }
 
-model RequesterUser {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  department String
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-
-  @@map("requester_users")
-}
-
 model User {
   id                 Int             @id @default(autoincrement())
   name               String

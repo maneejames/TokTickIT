@@ -4,10 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginAs } from "../helpers/auth.js";
 
 describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
   let requesterAId: number;
   let requesterBId: number;
+  let requesterACookie: string;
+  let requesterBCookie: string;
   let ticketIdA: number;
   let ticketNumberA: string;
   let activeAttachmentId: number;
@@ -16,12 +19,17 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
 
   beforeAll(async () => {
     const prisma = getPrisma();
-    const requesters = await prisma.requesterUser.findMany({
-      where: { isActive: true },
+    const requesters = await prisma.user.findMany({
+      where: { role: "REQUESTER", isActive: true, mustChangePassword: false },
       take: 2,
     });
     requesterAId = requesters[0].id;
     requesterBId = requesters[1].id;
+
+    const authA = await loginAs(requesters[0].email);
+    requesterACookie = authA.cookie;
+    const authB = await loginAs(requesters[1].email);
+    requesterBCookie = authB.cookie;
 
     const category = await prisma.category.findFirst({ where: { isActive: true } });
     const system = await prisma.relatedSystem.findFirst({ where: { isActive: true } });
@@ -91,7 +99,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 200 OK with full ticket details, category and relatedSystem objects, and attachments array", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}`)
-        .set("X-Requester-Id", String(requesterAId));
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("id", ticketIdA);
@@ -133,7 +141,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 404 Not Found when Requester B attempts to fetch Requester A's ticket", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}`)
-        .set("X-Requester-Id", String(requesterBId));
+        .set("Cookie", requesterBCookie);
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty("error");
@@ -143,7 +151,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 404 Not Found when ticket ID does not exist", async () => {
       const res = await request(app)
         .get("/api/tickets/999999")
-        .set("X-Requester-Id", String(requesterAId));
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty("error");
@@ -158,7 +166,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 200 OK with attachment metadata for owner", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}`)
-        .set("X-Requester-Id", String(requesterAId));
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("id", activeAttachmentId);
@@ -169,7 +177,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 404 Not Found for cross-requester access", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}`)
-        .set("X-Requester-Id", String(requesterBId));
+        .set("Cookie", requesterBCookie);
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe("NOT_FOUND");
@@ -180,10 +188,10 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
   // ATT-API-05: Download active attachment (header and query param; cross-requester 404)
   // ---------------------------------------------------------------------------
   describe("ATT-API-05: Download active attachment", () => {
-    it("returns 200 OK with binary stream and headers when using X-Requester-Id header", async () => {
+    it("returns 200 OK with binary stream and headers when authenticated with session cookie", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}/download`)
-        .set("X-Requester-Id", String(requesterAId));
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toContain("image/png");
@@ -191,9 +199,10 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
       expect(res.body.toString()).toBe("PNG fake content");
     });
 
-    it("returns 200 OK when using ?requesterId= query parameter (for browser link support)", async () => {
+    it("returns 200 OK when accessing download with session cookie", async () => {
       const res = await request(app)
-        .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}/download?requesterId=${requesterAId}`);
+        .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}/download?requesterId=${requesterAId}`)
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toContain("image/png");
@@ -204,7 +213,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 404 Not Found when cross-requester attempts download", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}/download`)
-        .set("X-Requester-Id", String(requesterBId));
+        .set("Cookie", requesterBCookie);
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe("NOT_FOUND");
@@ -231,7 +240,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
 
       const res = await request(app)
         .patch(`/api/tickets/${ticketIdA}/attachments/${toRemove.id}/remove`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .send({
           removedReason: "Uploaded wrong screenshot by mistake",
         });
@@ -251,7 +260,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 404 Not Found when cross-requester attempts to remove attachment", async () => {
       const res = await request(app)
         .patch(`/api/tickets/${ticketIdA}/attachments/${activeAttachmentId}/remove`)
-        .set("X-Requester-Id", String(requesterBId))
+        .set("Cookie", requesterBCookie)
         .send({ removedReason: "Should fail" });
 
       expect(res.status).toBe(404);
@@ -261,7 +270,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 400 Bad Request when attempting to remove an already removed attachment", async () => {
       const res = await request(app)
         .patch(`/api/tickets/${ticketIdA}/attachments/${removedAttachmentId}/remove`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .send({ removedReason: "Already removed" });
 
       expect(res.status).toBe(400);
@@ -276,7 +285,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
     it("returns 410 Gone (NOT 404) when attempting to download soft-removed attachment", async () => {
       const res = await request(app)
         .get(`/api/tickets/${ticketIdA}/attachments/${removedAttachmentId}/download`)
-        .set("X-Requester-Id", String(requesterAId));
+        .set("Cookie", requesterACookie);
 
       expect(res.status).toBe(410);
       expect(res.body).toHaveProperty("error");
@@ -337,7 +346,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
       // Now activeCount = 4, totalCount = 6. We should still be able to upload 1 more active attachment (the 5th).
       const validUpload = await request(app)
         .post(`/api/tickets/${testTicket.id}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", Buffer.from("5th active file"), {
           filename: "fifth_active.png",
           contentType: "image/png",
@@ -348,7 +357,7 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
       // Now activeCount = 5. Attempting a 6th active upload must fail with 400 Bad Request.
       const sixthUpload = await request(app)
         .post(`/api/tickets/${testTicket.id}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", Buffer.from("6th active file"), {
           filename: "sixth_active.png",
           contentType: "image/png",

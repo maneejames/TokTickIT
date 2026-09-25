@@ -334,36 +334,6 @@ app.get("/api/related-systems", async (_req: Request, res: Response) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Lab 2 Issue 3 — Requester Endpoints
-// ---------------------------------------------------------------------------
-app.get("/api/requesters", async (_req: Request, res: Response) => {
-  try {
-    const requesters = await getPrisma().requesterUser.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        department: true,
-        isActive: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    });
-    res.status(200).json(requesters);
-  } catch (_err: unknown) {
-    res.status(500).json({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Failed to fetch requesters",
-      },
-    });
-  }
-});
 
 // Reusable middleware verification endpoint
 app.get("/api/requester-test-auth", requireRequester, (req: Request, res: Response) => {
@@ -977,6 +947,7 @@ app.get("/api/tickets/:id", ...requireAuthAndTicketAccess(), async (req: Request
             name: true,
           },
         },
+        isRequesterResolved: true,
         attachments: {
           orderBy: {
             uploadedAt: "asc",
@@ -993,6 +964,24 @@ app.get("/api/tickets/:id", ...requireAuthAndTicketAccess(), async (req: Request
             uploadedAt: true,
           },
         },
+        publicComments: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+            ticketId: true,
+            authorId: true,
+            content: true,
+            createdAt: true,
+            author: {
+              select: {
+                name: true,
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -1007,6 +996,15 @@ app.get("/api/tickets/:id", ...requireAuthAndTicketAccess(), async (req: Request
 
     return res.status(200).json({
       ...ticket,
+      publicComments: ticket.publicComments.map((c) => ({
+        id: c.id,
+        ticketId: c.ticketId,
+        authorId: c.authorId,
+        authorName: c.author.name,
+        authorRole: c.author.role,
+        content: c.content,
+        createdAt: c.createdAt,
+      })),
       requester: {
         ...ticket.requester,
         department: "General",
@@ -1103,7 +1101,7 @@ app.get(
 // GET /api/tickets/:id/attachments/:attachmentId/download: Stream active attachment
 app.get(
   "/api/tickets/:id/attachments/:attachmentId/download",
-  requireAuth(false, true, true),
+  requireAuth(),
   requireTicketOwnership("id", "Attachment not found"),
   async (req: Request, res: Response) => {
     const ticketId = Number(req.params.id);
@@ -1305,6 +1303,356 @@ app.patch(
         error: {
           code: "INTERNAL_ERROR",
           message: "Failed to remove attachment",
+        },
+      });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Lab 3 — Problem Appears Resolved Indicator (Issue #6)
+// ---------------------------------------------------------------------------
+
+// PATCH /api/tickets/:id/resolve-indicator: Requester marks problem as resolved
+app.patch(
+  "/api/tickets/:id/resolve-indicator",
+  ...requireRequesterTicketAccess("id", "Ticket not found"),
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+    const { isRequesterResolved } = req.body;
+
+    if (typeof isRequesterResolved !== "boolean") {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Field 'isRequesterResolved' must be a boolean",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const updated = await prisma.ticket.update({
+        where: { id: ticketId },
+        data: { isRequesterResolved },
+        select: {
+          id: true,
+          ticketNumber: true,
+          isRequesterResolved: true,
+          currentStatus: true,
+        },
+      });
+
+      return res.status(200).json(updated);
+    } catch (err: unknown) {
+      console.error("PATCH /api/tickets/:id/resolve-indicator error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to update resolve indicator",
+        },
+      });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Lab 3 — Public Comments & Internal Notes (Issue #6, Issue #8)
+// ---------------------------------------------------------------------------
+
+// POST /api/tickets/:id/comments: Post a public comment
+app.post(
+  "/api/tickets/:id/comments",
+  ...requireAuthAndTicketAccess("id"),
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+    const { content } = req.body ?? {};
+
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Comment content cannot be empty or whitespace only",
+        },
+      });
+    }
+
+    if (content.length > 2000) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Comment content cannot exceed 2000 characters",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const newComment = await prisma.publicComment.create({
+        data: {
+          ticketId,
+          authorId: req.user!.id,
+          content: content.trim(),
+        },
+        select: {
+          id: true,
+          ticketId: true,
+          authorId: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              name: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return res.status(201).json({
+        id: newComment.id,
+        ticketId: newComment.ticketId,
+        authorId: newComment.authorId,
+        authorName: newComment.author.name,
+        authorRole: newComment.author.role,
+        content: newComment.content,
+        createdAt: newComment.createdAt,
+      });
+    } catch (err: unknown) {
+      console.error("POST /api/tickets/:id/comments error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to post comment",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/tickets/:id/comments: Retrieve public comments
+app.get(
+  "/api/tickets/:id/comments",
+  ...requireAuthAndTicketAccess("id"),
+  async (req: Request, res: Response) => {
+    const ticketId = Number(req.params.id);
+
+    try {
+      const prisma = getPrisma();
+      const comments = await prisma.publicComment.findMany({
+        where: { ticketId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          ticketId: true,
+          authorId: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              name: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json(
+        comments.map((c) => ({
+          id: c.id,
+          ticketId: c.ticketId,
+          authorId: c.authorId,
+          authorName: c.author.name,
+          authorRole: c.author.role,
+          content: c.content,
+          createdAt: c.createdAt,
+        }))
+      );
+    } catch (err: unknown) {
+      console.error("GET /api/tickets/:id/comments error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to fetch comments",
+        },
+      });
+    }
+  }
+);
+
+// POST /api/tickets/:id/notes: Post an internal note (IT_STAFF only)
+app.post(
+  "/api/tickets/:id/notes",
+  requireAuth(),
+  async (req: Request, res: Response) => {
+    if (req.user!.role !== "IT_STAFF") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Internal notes are restricted to IT Staff",
+        },
+      });
+    }
+
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    const { content } = req.body ?? {};
+
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Note content cannot be empty or whitespace only",
+        },
+      });
+    }
+
+    if (content.length > 2000) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Note content cannot exceed 2000 characters",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found",
+          },
+        });
+      }
+
+      const note = await prisma.internalNote.create({
+        data: {
+          ticketId,
+          authorId: req.user!.id,
+          content: content.trim(),
+        },
+        select: {
+          id: true,
+          ticketId: true,
+          authorId: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      return res.status(201).json({
+        id: note.id,
+        ticketId: note.ticketId,
+        authorId: note.authorId,
+        authorName: note.author.name,
+        content: note.content,
+        createdAt: note.createdAt,
+      });
+    } catch (err: unknown) {
+      console.error("POST /api/tickets/:id/notes error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to post note",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/tickets/:id/notes: Retrieve internal notes (IT_STAFF only)
+app.get(
+  "/api/tickets/:id/notes",
+  requireAuth(),
+  async (req: Request, res: Response) => {
+    if (req.user!.role !== "IT_STAFF") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Internal notes are restricted to IT Staff",
+        },
+      });
+    }
+
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    try {
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true },
+      });
+
+      if (!ticket) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found",
+          },
+        });
+      }
+
+      const notes = await prisma.internalNote.findMany({
+        where: { ticketId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          ticketId: true,
+          authorId: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json(
+        notes.map((n) => ({
+          id: n.id,
+          ticketId: n.ticketId,
+          authorId: n.authorId,
+          authorName: n.author.name,
+          content: n.content,
+          createdAt: n.createdAt,
+        }))
+      );
+    } catch (err: unknown) {
+      console.error("GET /api/tickets/:id/notes error:", err);
+      return res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to fetch notes",
         },
       });
     }

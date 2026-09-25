@@ -4,20 +4,29 @@ import fs from "node:fs";
 import path from "node:path";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginAs } from "../helpers/auth.js";
 
 describe("Attachment API Tests", () => {
   let requesterAId: number;
   let requesterBId: number;
+  let requesterACookie: string;
+  let requesterBCookie: string;
   let ticketIdRequesterA: number;
 
   beforeAll(async () => {
     const prisma = getPrisma();
-    const requesters = await prisma.requesterUser.findMany({
-      where: { isActive: true },
+    const requesters = await prisma.user.findMany({
+      where: { role: "REQUESTER", isActive: true, mustChangePassword: false },
       take: 2,
     });
     requesterAId = requesters[0].id;
     requesterBId = requesters[1].id;
+
+    const authA = await loginAs(requesters[0].email);
+    requesterACookie = authA.cookie;
+
+    const authB = await loginAs(requesters[1].email);
+    requesterBCookie = authB.cookie;
 
     const category = await prisma.category.findFirst({ where: { isActive: true } });
     const system = await prisma.relatedSystem.findFirst({ where: { isActive: true } });
@@ -43,7 +52,7 @@ describe("Attachment API Tests", () => {
 
       const res = await request(app)
         .post(`/api/tickets/${ticketIdRequesterA}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", fileBuffer, {
           filename: "screenshot.png",
           contentType: "image/png",
@@ -78,7 +87,7 @@ describe("Attachment API Tests", () => {
 
       const res = await request(app)
         .post(`/api/tickets/${ticketIdRequesterA}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", oversizedBuffer, {
           filename: "large_file.pdf",
           contentType: "application/pdf",
@@ -96,7 +105,7 @@ describe("Attachment API Tests", () => {
 
       const res = await request(app)
         .post(`/api/tickets/${ticketIdRequesterA}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", fileBuffer, {
           filename: "malicious.exe",
           contentType: "application/x-msdownload",
@@ -134,7 +143,7 @@ describe("Attachment API Tests", () => {
       const fileBuffer = Buffer.from("6th file payload");
       const res = await request(app)
         .post(`/api/tickets/${ticketIdRequesterA}/attachments`)
-        .set("X-Requester-Id", String(requesterAId))
+        .set("Cookie", requesterACookie)
         .attach("file", fileBuffer, {
           filename: "sixth_file.png",
           contentType: "image/png",
@@ -153,7 +162,7 @@ describe("Attachment API Tests", () => {
 
       const res = await request(app)
         .post(`/api/tickets/${ticketIdRequesterA}/attachments`)
-        .set("X-Requester-Id", String(requesterBId)) // Requester B does not own ticket A
+        .set("Cookie", requesterBCookie) // Requester B does not own ticket A
         .attach("file", fileBuffer, {
           filename: "unauthorized.png",
           contentType: "image/png",
