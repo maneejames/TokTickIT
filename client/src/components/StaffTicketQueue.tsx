@@ -642,7 +642,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
                       Status{renderSortIndicator("status")}
                     </th>
                     <th style={{ width: "10%" }}>Owner</th>
-                    <th style={{ width: "8%", textAlign: "right" }}>Actions</th>
+                    <th style={{ width: "110px", minWidth: "105px", textAlign: "right", whiteSpace: "nowrap" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -747,11 +747,11 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
                       </td>
 
                       {/* 9. Actions */}
-                      <td style={{ textAlign: "right" }}>
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                         <button
                           type="button"
                           className="zen-btn-primary py-1 px-2"
-                          style={{ fontSize: "12px" }}
+                          style={{ fontSize: "12px", whiteSpace: "nowrap" }}
                           onClick={() => onOpenTicket?.(ticket.id)}
                         >
                           Open Ticket
@@ -857,8 +857,8 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
 
                   <button
                     type="button"
-                    className="zen-btn-primary py-1 px-3"
-                    style={{ fontSize: "12px" }}
+                    className="zen-btn-primary py-1 px-3 flex-shrink-0"
+                    style={{ fontSize: "12px", whiteSpace: "nowrap" }}
                     onClick={() => onOpenTicket?.(ticket.id)}
                   >
                     Open Ticket
