@@ -23,6 +23,7 @@ import {
   requireAuth,
   requireRequesterOnly,
   requireITStaffOnly,
+  requireAdminOnly,
   requireAuthAndTicketAccess,
   requireTicketOwnership,
   requireRequesterTicketAccess,
@@ -2349,6 +2350,352 @@ app.patch(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 9 — Administrator User Management Endpoints (api-spec §6)
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/users - List Users with Search and Role Filter
+app.get("/api/admin/users", requireAdminOnly(), async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const { search, role } = req.query;
+
+    const where: any = {};
+
+    if (search && typeof search === "string" && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { name: { contains: term, mode: "insensitive" } },
+        { email: { contains: term, mode: "insensitive" } },
+      ];
+    }
+
+    if (role && typeof role === "string" && ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(role)) {
+      where.role = role;
+    }
+
+    const users = await (prisma as any).user.findMany({
+      where,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(200).json(users);
+  } catch (err: unknown) {
+    console.error("GET /api/admin/users error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to list users",
+      },
+    });
+  }
+});
+
+// POST /api/admin/users - Create User with Initial Password
+app.post("/api/admin/users", requireAdminOnly(), async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const { name, email, role, isActive, initialPassword } = req.body ?? {};
+
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Name is required",
+        },
+      });
+    }
+
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Email is required",
+        },
+      });
+    }
+
+    const validRoles = ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"];
+    if (!role || typeof role !== "string" || !validRoles.includes(role)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: `Role must be one of: ${validRoles.join(", ")}`,
+        },
+      });
+    }
+
+    if (!initialPassword || typeof initialPassword !== "string") {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Initial password is required",
+        },
+      });
+    }
+
+    if (!validatePasswordComplexity(initialPassword)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Password does not meet complexity requirements",
+        },
+      });
+    }
+
+    // Check duplicate email (BR-21, AC-26)
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await (prisma as any).user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        error: {
+          code: "CONFLICT",
+          message: "Email already exists in the system",
+        },
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
+    const newUser = await (prisma as any).user.create({
+      data: {
+        name: name.trim(),
+        email: normalizedEmail,
+        role,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
+        mustChangePassword: true,
+        passwordHash,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(201).json(newUser);
+  } catch (err: unknown) {
+    console.error("POST /api/admin/users error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to create user",
+      },
+    });
+  }
+});
+
+// PATCH /api/admin/users/:id - Edit User Details and Role
+app.patch("/api/admin/users/:id", requireAdminOnly(), async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid user ID",
+        },
+      });
+    }
+
+    const targetUser = await (prisma as any).user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      });
+    }
+
+    const { name, email, role, isActive } = req.body ?? {};
+
+    // BR-22 / AC-28: Administrator cannot deactivate own account
+    if (req.user?.id === userId && isActive === false) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "Administrator cannot deactivate own account",
+        },
+      });
+    }
+
+    // BR-23 / AC-29: Cannot deactivate or remove last active Administrator
+    const isTargetActiveAdmin = targetUser.role === "ADMINISTRATOR" && targetUser.isActive;
+    const isDeactivating = isActive === false;
+    const isDemoting = role !== undefined && role !== "ADMINISTRATOR";
+
+    if (isTargetActiveAdmin && (isDeactivating || isDemoting)) {
+      const activeAdminCount = await (prisma as any).user.count({
+        where: {
+          role: "ADMINISTRATOR",
+          isActive: true,
+        },
+      });
+
+      if (activeAdminCount <= 1) {
+        return res.status(400).json({
+          error: {
+            code: "BAD_REQUEST",
+            message: "Cannot deactivate or remove last active Administrator",
+          },
+        });
+      }
+    }
+
+    if (role !== undefined) {
+      const validRoles = ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: `Role must be one of: ${validRoles.join(", ")}`,
+          },
+        });
+      }
+    }
+
+    // Check duplicate email if changed
+    if (email !== undefined && typeof email === "string") {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail !== targetUser.email.toLowerCase()) {
+        const existing = await (prisma as any).user.findUnique({
+          where: { email: normalizedEmail },
+        });
+
+        if (existing && existing.id !== userId) {
+          return res.status(409).json({
+            error: {
+              code: "CONFLICT",
+              message: "Email already exists in the system",
+            },
+          });
+        }
+      }
+    }
+
+    const updatedUser = await (prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        name: name !== undefined ? name.trim() : undefined,
+        email: email !== undefined ? email.trim().toLowerCase() : undefined,
+        role: role !== undefined ? role : undefined,
+        isActive: isActive !== undefined ? Boolean(isActive) : undefined,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        mustChangePassword: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(200).json(updatedUser);
+  } catch (err: unknown) {
+    console.error("PATCH /api/admin/users/:id error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to update user",
+      },
+    });
+  }
+});
+
+// POST /api/admin/users/:id/reset-password - Set New Initial Password
+app.post("/api/admin/users/:id/reset-password", requireAdminOnly(), async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid user ID",
+        },
+      });
+    }
+
+    const targetUser = await (prisma as any).user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found",
+        },
+      });
+    }
+
+    const { newInitialPassword } = req.body ?? {};
+
+    if (!newInitialPassword || typeof newInitialPassword !== "string") {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "New initial password is required",
+        },
+      });
+    }
+
+    if (!validatePasswordComplexity(newInitialPassword)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Password does not meet complexity requirements",
+        },
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newInitialPassword, 10);
+    await (prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Initial password reset successfully",
+      userId,
+      mustChangePassword: true,
+    });
+  } catch (err: unknown) {
+    console.error("POST /api/admin/users/:id/reset-password error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to reset password",
+      },
+    });
+  }
+});
 
 /**
  * Build a parameterised WHERE clause string for raw SQL queries.

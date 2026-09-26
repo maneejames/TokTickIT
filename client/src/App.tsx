@@ -8,6 +8,7 @@ import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 function MainContent() {
   const { user, isLoading: authLoading, refreshUser, logout } = useAuth();
@@ -26,6 +27,9 @@ function MainContent() {
     if (user && !user.mustChangePassword) {
       if (user.role === "IT_STAFF" && activeNav === "my-tickets" && !selectedTicketId && !window.location.pathname.startsWith("/tickets")) {
         setActiveNav("staff-queue");
+      }
+      if (user.role === "ADMINISTRATOR" && activeNav === "my-tickets" && !selectedTicketId && !window.location.pathname.startsWith("/tickets")) {
+        setActiveNav("admin-users");
       }
     }
   }, [user]);
@@ -142,6 +146,8 @@ function MainContent() {
             handleNavigateToTicketDetail(ticketId);
           }}
         />
+      ) : activeNav === "admin-users" ? (
+        <UserManagement currentUser={user} />
       ) : activeNav === "create-ticket" ? (
         <CreateTicket
           currentRequester={activeRequesterObj}
