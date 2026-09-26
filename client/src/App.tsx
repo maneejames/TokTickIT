@@ -7,6 +7,7 @@ import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import { RequesterTicketDetail } from "./components/RequesterTicketDetail.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 
 function MainContent() {
   const { user, isLoading: authLoading, refreshUser, logout } = useAuth();
@@ -16,7 +17,7 @@ function MainContent() {
     return "my-tickets";
   });
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(() => {
-    const match = window.location.pathname.match(/^\/tickets\/(\d+)$/);
+    const match = window.location.pathname.match(/^\/(?:staff\/)?tickets\/(\d+)$/);
     return match ? Number(match[1]) : null;
   });
 
@@ -31,13 +32,22 @@ function MainContent() {
 
   const handleNavigateToTicketDetail = (ticketId: number) => {
     setSelectedTicketId(ticketId);
-    window.history.pushState(null, "", `/tickets/${ticketId}`);
+    if (user?.role === "IT_STAFF") {
+      window.history.pushState(null, "", `/staff/tickets/${ticketId}`);
+    } else {
+      window.history.pushState(null, "", `/tickets/${ticketId}`);
+    }
   };
 
   const handleBackToMyTickets = () => {
     setSelectedTicketId(null);
-    setActiveNav("my-tickets");
-    window.history.pushState(null, "", "/tickets");
+    if (user?.role === "IT_STAFF") {
+      setActiveNav("staff-queue");
+      window.history.pushState(null, "", "/staff/queue");
+    } else {
+      setActiveNav("my-tickets");
+      window.history.pushState(null, "", "/tickets");
+    }
   };
 
   const handleNavSelect = (nav: "my-tickets" | "create-ticket" | "staff-queue" | "admin-users") => {
@@ -112,16 +122,23 @@ function MainContent() {
   return (
     <AppShell activeNav={activeNav} onNavSelect={handleNavSelect}>
       {selectedTicketId !== null ? (
-        <RequesterTicketDetail
-          ticketId={selectedTicketId}
-          currentRequester={activeRequesterObj}
-          onNavigateToMyTickets={handleBackToMyTickets}
-        />
+        user.role === "IT_STAFF" ? (
+          <StaffTicketDetail
+            ticketId={selectedTicketId}
+            currentUser={user}
+            onNavigateBack={handleBackToMyTickets}
+          />
+        ) : (
+          <RequesterTicketDetail
+            ticketId={selectedTicketId}
+            currentRequester={activeRequesterObj}
+            onNavigateToMyTickets={handleBackToMyTickets}
+          />
+        )
       ) : activeNav === "staff-queue" ? (
         <StaffTicketQueue
           currentUser={user}
           onOpenTicket={(ticketId) => {
-            // For now, in Issue #7, routes can open ticket or navigate
             handleNavigateToTicketDetail(ticketId);
           }}
         />

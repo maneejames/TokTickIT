@@ -346,8 +346,11 @@ export interface TicketDetail {
   summary: string;
   description: string;
   requestedPriority: "LOW" | "MEDIUM" | "HIGH";
+  itPriority?: StaffPriority;
   currentStatus: string;
   isRequesterResolved?: boolean;
+  ownerId?: number | null;
+  owner?: { id: number; name: string; email?: string } | null;
   createdAt: string;
   updatedAt: string;
   requester: {
@@ -785,5 +788,198 @@ export async function getStaffTickets(params: QueueFilterParams = {}): Promise<S
 
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 8 — IT Staff Ticket Detail & Internal Notes API Functions
+// ---------------------------------------------------------------------------
+
+export interface InternalNoteItem {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export async function getInternalNotes(ticketId: number): Promise<InternalNoteItem[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch internal notes (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function postInternalNote(
+  ticketId: number,
+  content: string
+): Promise<InternalNoteItem> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ content }),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to post internal note (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function updateTicketOwner(
+  ticketId: number,
+  ownerId?: number
+): Promise<{ id: number; ticketNumber: string; ownerId: number; owner: { id: number; name: string } | null }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/owner`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(ownerId !== undefined ? { ownerId } : {}),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update ticket owner (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function updateTicketPriority(
+  ticketId: number,
+  itPriority: StaffPriority
+): Promise<{ id: number; ticketNumber: string; itPriority: StaffPriority; requestedPriority: string }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ itPriority }),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update priority (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function updateTicketStatus(
+  ticketId: number,
+  status: StaffTicketStatus
+): Promise<{ id: number; ticketNumber: string; status: StaffTicketStatus; currentStatus: StaffTicketStatus }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update status (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function getStaffUsers(): Promise<User[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/staff/users`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    return [];
+  }
+
+  return res.json();
+}
+
 
 
