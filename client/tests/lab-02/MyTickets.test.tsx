@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { MyTickets } from "../../src/components/MyTickets.js";
 import * as api from "../../src/api.js";
 
-const mockRequester: api.RequesterUser = {
+const mockRequester: api.User = {
   id: 1,
   name: "Somchai Jaidee",
   email: "somchai.jai@kmutt.ac.th",
+  role: "REQUESTER",
+  mustChangePassword: false,
   department: "Engineering",
   isActive: true,
 };

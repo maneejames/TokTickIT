@@ -564,6 +564,9 @@ export interface User {
   email: string;
   role: UserRole;
   mustChangePassword: boolean;
+  department?: string;
+  isActive?: boolean;
+  createdAt?: string;
 }
 
 export interface LoginPayload {
@@ -976,6 +979,162 @@ export async function getStaffUsers(): Promise<User[]> {
 
   if (!res.ok) {
     return [];
+  }
+
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 9 — Administrator User Management Types & API Functions
+// ---------------------------------------------------------------------------
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
+export interface CreateAdminUserData {
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive?: boolean;
+  initialPassword: string;
+}
+
+export interface UpdateAdminUserData {
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  isActive?: boolean;
+}
+
+export async function getAdminUsers(params?: { search?: string; role?: string }): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.append("search", params.search);
+  if (params?.role && params.role !== "ALL") query.append("role", params.role);
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/admin/users${queryString}`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch users (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function createAdminUser(data: CreateAdminUserData): Promise<AdminUser> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to create user (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function updateAdminUser(id: number, data: UpdateAdminUserData): Promise<AdminUser> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update user (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  return res.json();
+}
+
+export async function resetAdminUserPassword(
+  id: number,
+  data: { newInitialPassword: string }
+): Promise<{ message: string; userId: number; mustChangePassword: boolean }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/admin/users/${id}/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to reset password (HTTP ${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    throw new Error(errorMsg);
   }
 
   return res.json();

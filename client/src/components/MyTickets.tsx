@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Category,
-  RequesterUser,
+  User,
   TicketListItem,
   PaginationMetadata,
   getCategories,
@@ -9,7 +9,7 @@ import {
 } from "../api.js";
 
 interface MyTicketsProps {
-  currentRequester: RequesterUser;
+  currentRequester: User;
   onNavigateToCreateTicket?: () => void;
   onNavigateToTicketDetail?: (ticketId: number) => void;
 }

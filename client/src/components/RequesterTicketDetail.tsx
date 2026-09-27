@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   TicketDetail,
   Attachment,
-  RequesterUser,
+  User,
   PublicCommentItem,
   getTicketDetail,
   uploadAttachment,
@@ -14,7 +14,7 @@ import {
 
 interface RequesterTicketDetailProps {
   ticketId: number;
-  currentRequester: RequesterUser;
+  currentRequester: User;
   onNavigateToMyTickets: () => void;
 }
 
