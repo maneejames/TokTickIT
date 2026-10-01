@@ -330,9 +330,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
       {/* Users Table */}
       {!isLoading && !apiError && (
-        <div className="zen-card overflow-hidden mb-4">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0" style={{ borderCollapse: "collapse" }}>
+        <div className="zen-card mb-4" style={{ overflow: "hidden" }}>
+          <div className="table-responsive" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <table className="table table-hover align-middle mb-0" style={{ borderCollapse: "collapse", minWidth: "680px" }}>
               <thead style={{ backgroundColor: "#F9FAF9", borderBottom: "2px solid var(--color-border)" }}>
                 <tr>
                   <th style={{ padding: "12px 16px" }}>Name</th>

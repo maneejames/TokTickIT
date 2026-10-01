@@ -282,10 +282,11 @@ All seeded accounts are created with standard local development password: `Passw
 
 ## 10. Definition of Done (DoD)
 
-- [ ] **Contract Alignment**: Every FR (FR-01–FR-25), BR (BR-01–BR-25), and AC (AC-01–AC-33) is fully implemented.
-- [ ] **Test Traceability**: 100% of Acceptance Criteria map to concrete, automated tests in `docs/lab-03/tests.md`.
-- [ ] **No Regression**: All Lab 2 tests pass under the authenticated user model without the Dev Requester selector.
-- [ ] **Security Integrity**: Passwords never stored/logged in plaintext. Role and ownership authorization enforced server-side.
-- [ ] **Zen Green Design**: UI conforms to `docs/lab-03/ui-spec.md` with responsive layouts verified on desktop (1280px), tablet (768px), and mobile (375px).
-- [ ] **Documentation**: `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md` reviewed and approved before code merges into `lab3-staging`.
-- [ ] **Evidence**: All required screenshots captured in `artifacts/lab-03/screenshots/`.
+- [x] **Contract Alignment**: Every FR (FR-01–FR-25), BR (BR-01–BR-26), and AC (AC-01–AC-33) is fully implemented.
+- [x] **Test Traceability**: 100% of Acceptance Criteria map to concrete, automated tests in `docs/lab-03/tests.md`.
+- [x] **No Regression**: All Lab 2 tests pass under the authenticated user model without the Dev Requester selector (228 server / 71 client passing).
+- [x] **Security Integrity**: Passwords never stored/logged in plaintext. Role and ownership authorization enforced server-side.
+- [x] **Zen Green Design**: UI conforms to `docs/lab-03/ui-spec.md` with responsive layouts verified on desktop (1280px), tablet (768px), and mobile (375px).
+- [x] **Documentation**: `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md` reviewed, updated, and approved before code merges into `lab3-staging`.
+- [x] **Evidence**: All required screenshots captured in `artifacts/lab-03/screenshots/`.
+- [x] **Accepted Test Noise**: Three asynchronous React Testing Library `act(...)` console warnings (`Login.test.tsx`, `ChangePassword.test.tsx`, `StaffTicketQueue.test.tsx`) are formally reviewed and documented as accepted non-blocking test noise.

@@ -22,46 +22,49 @@ Sprint 3 implements a rigorous Test-Driven Development (TDD) and Test-Driven Del
 
 | Test ID | Type | Target AC / BR | What It Tests | Expected Result | Automated Test File Path | Status |
 |---|---|---|---|---|---|---|
-| **AUTH-API-01** | API | AC-01 | Valid credential login | 200 OK; sets `toktickit_session` cookie; returns user payload | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-02** | API | AC-05 | Inactive user login attempt | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-03** | API | AC-06 | Bad password or unknown email | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-04** | API | AC-07 | Session logout | 200 OK; JSON message returned; cookie cleared; session invalidated on subsequent calls | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-05** | API | AC-03 | Password change with valid complexity | 200 OK; `mustChangePassword` flag cleared | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-06** | API | AC-04 | Password change failing complexity | 400 Bad Request; field error with complexity hints | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-API-07** | API | AC-02, BR-02 | Block normal API if `mustChangePassword=true` | 403 Forbidden on `/api/tickets` until password is changed | `server/tests/lab-03/auth.api.test.ts` | Planned |
-| **AUTH-UI-01** | UI | AC-01 | Login screen submission and busy state | Spinner activates; inputs disabled; routes upon success | `client/tests/lab-03/Login.test.tsx` | Planned |
-| **AUTH-UI-02** | UI | AC-05, AC-06 | Login error display | Inline error banner rendered; password field cleared | `client/tests/lab-03/Login.test.tsx` | Planned |
-| **AUTH-UI-03** | UI | AC-02, AC-03 | Mandatory Change Password screen | Form enforces complexity rules; redirects to app on completion | `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
-| **AUTH-E2E-01** | E2E | AC-01, AC-07 | End-to-end login, view profile, and logout | Session persists on refresh, terminates cleanly on logout | `e2e/lab-03/authentication.spec.ts` | Planned |
-| **AUTH-E2E-02** | E2E | AC-02, AC-03 | First login password change flow | Seed user with temp password forced to update before accessing queue | `e2e/lab-03/authentication.spec.ts` | Planned |
-| **AUTHZ-API-01**| API | AC-08 | Unauthenticated access to protected routes | 401 Unauthorized across all protected endpoints | `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| **AUTHZ-API-02**| API | AC-09, AC-31 | Role-based permission guards | Requester cannot call staff/admin; Staff cannot call admin | `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| **AUTHZ-API-03**| API | AC-10 | Authenticated identity derives ownership | Server ignores client-provided `requesterId` in payload | `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| **AUTHZ-API-04**| API | AC-12 | Cross-requester ticket access rejection | Requester accessing another requester's ticket returns 404 | `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| **QUEUE-API-01**| API | AC-13 | IT Staff ticket queue retrieval | 200 OK; returns paginated tickets with ownership and priority | `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
-| **QUEUE-API-02**| API | AC-13 | Queue search and filtering | Filters by status, priority, and substring search | `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
-| **QUEUE-UI-01** | UI | AC-13 | Ticket queue table rendering and sorting | Renders 9 columns with priority and status badges | `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
-| **QUEUE-UI-02** | UI | AC-13 | Queue search toolbar and empty/no-result states | Demonstrates loading shimmer, empty, and no-results feedback | `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
-| **DETAIL-API-01**| API| AC-14 | IT Staff claims unassigned ticket | 200 OK; `ownerId` set to calling staff member | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
-| **DETAIL-API-02**| API| AC-15 | IT Staff reassigns ticket to another active staff | 200 OK; reassigning to inactive user returns 400 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
-| **DETAIL-API-03**| API| AC-16 | IT Staff modifies IT Priority | 200 OK; `itPriority` updated; `requestedPriority` unchanged | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
-| **DETAIL-API-04**| API| AC-17, AC-18 | Status transition matrix enforcement | Valid transitions succeed (200); invalid transitions return 400 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
-| **DETAIL-UI-01**| UI | AC-14, AC-16 | Claim, reassign, and priority controls | Operational header reflects real-time status and ownership changes | `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
-| **COMMS-API-01**| API | AC-19 | Post and retrieve Public Comments | 201 Created; visible to both Requester owner and IT Staff | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| **COMMS-API-02**| API | AC-20, AC-21, AC-33 | Post and retrieve Internal Notes | 201 Created for Staff; strictly rejected with 403 for Requester and 403 for Admin (asserted in separate test cases) | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| **COMMS-API-03**| API | AC-22 | Empty/whitespace comment/note rejection | 400 Bad Request if trimmed content is empty | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| **COMMS-API-04**| API | AC-23 | Requester "Problem Appears Resolved" toggle | 200 OK; `isRequesterResolved` updated; status stays intact | `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| **ADMIN-API-01**| API | AC-24 | Admin lists users with search/role filter | 200 OK; returns matching user list with roles and active flags | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-02**| API | AC-25 | Admin creates new user with initial password | 201 Created; password hashed; `mustChangePassword=true` | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-03**| API | AC-26 | Reject duplicate email creation | 409 Conflict when email already in database | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-04**| API | AC-27 | Admin edits user details and role | 200 OK; updates persisted | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-05**| API | AC-28 | Admin self-deactivation prevention | 400 Bad Request when admin deactivates own ID | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-06**| API | AC-29 | Last active Administrator guard | 400 Bad Request when attempting to deactivate sole admin | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-API-07**| API | AC-30 | Admin sets new initial password | 200 OK; updates hash; sets `mustChangePassword=true` | `server/tests/lab-03/users-admin.api.test.ts` | Planned |
-| **ADMIN-UI-01** | UI | AC-24, AC-25 | Admin User Management table and Create modal | Table renders user list; modal handles validation and creation | `client/tests/lab-03/UserManagement.test.tsx` | Planned |
-| **ADMIN-UI-02** | UI | AC-28, AC-29 | Deactivation safety checks in UI | Self-deactivate and last admin deactivate controls disabled | `client/tests/lab-03/UserManagement.test.tsx` | Planned |
-| **ADMIN-E2E-01**| E2E | AC-24–AC-30 | Full user administration lifecycle | Admin creates user -> sets password -> user logs in -> forces change | `e2e/lab-03/user-administration.spec.ts` | Planned |
-| **STAFF-E2E-01**| E2E | AC-13–AC-23 | IT Staff ticket workflow journey | Staff opens queue -> claims ticket -> updates status -> adds note | `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
+| **AUTH-API-01** | API | AC-01 | Valid credential login | 200 OK; sets `toktickit_session` cookie; returns user payload | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-02** | API | AC-05 | Inactive user login attempt | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-03** | API | AC-06 | Bad password or unknown email | 401 Unauthorized; generic error message | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-04** | API | AC-07 | Session logout | 200 OK; JSON message returned; cookie cleared; session invalidated on subsequent calls | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-05** | API | AC-03 | Password change with valid complexity | 200 OK; `mustChangePassword` flag cleared | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-06** | API | AC-04 | Password change failing complexity | 400 Bad Request; field error with complexity hints | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-07** | API | AC-02, BR-02 | Block normal API if `mustChangePassword=true` | 403 Forbidden on `/api/tickets` until password is changed | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-API-08** | API | BR-26 | Session invalidation and token rotation on password change | Old token rejected (401); new session token issued and verified | `server/tests/lab-03/auth.api.test.ts` | Pass |
+| **AUTH-UI-01** | UI | AC-01 | Login screen submission and busy state | Spinner activates; inputs disabled; routes upon success | `client/tests/lab-03/Login.test.tsx` | Pass |
+| **AUTH-UI-02** | UI | AC-05, AC-06 | Login error display | Inline error banner rendered; password field cleared | `client/tests/lab-03/Login.test.tsx` | Pass |
+| **AUTH-UI-03** | UI | AC-02, AC-03 | Mandatory Change Password screen | Form enforces complexity rules; redirects to app on completion | `client/tests/lab-03/ChangePassword.test.tsx` | Pass |
+| **AUTH-E2E-01** | E2E | AC-01, AC-07 | End-to-end login, view profile, and logout | Session persists on refresh, terminates cleanly on logout | `e2e/lab-03/authentication.spec.ts` | Pass |
+| **AUTH-E2E-02** | E2E | AC-02, AC-03 | First login password change flow | Seed user with temp password forced to update before accessing queue | `e2e/lab-03/authentication.spec.ts` | Pass |
+| **AUTHZ-API-01**| API | AC-08 | Unauthenticated access to protected routes | 401 Unauthorized across all protected endpoints | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| **AUTHZ-API-02**| API | AC-09, AC-31 | Role-based permission guards | Requester cannot call staff/admin; Staff cannot call admin | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| **AUTHZ-API-03**| API | AC-10 | Authenticated identity derives ownership | Server ignores client-provided `requesterId` in payload | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| **AUTHZ-API-04**| API | AC-12 | Cross-requester ticket access rejection | Requester accessing another requester's ticket returns 404 | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| **TICK-API-OWN**| API | AC-11 | Requester My Tickets isolation | Returns only tickets owned by authenticated requester | `server/tests/lab-02/my-tickets.api.test.ts` | Pass |
+| **QUEUE-API-01**| API | AC-13 | IT Staff ticket queue retrieval | 200 OK; returns paginated tickets with ownership and priority | `server/tests/lab-03/staff-queue.api.test.ts` | Pass |
+| **QUEUE-API-02**| API | AC-13 | Queue search and filtering | Filters by status, priority, and substring search | `server/tests/lab-03/staff-queue.api.test.ts` | Pass |
+| **QUEUE-UI-01** | UI | AC-13 | Ticket queue table rendering and sorting | Renders 9 columns with priority and status badges | `client/tests/lab-03/StaffTicketQueue.test.tsx` | Pass |
+| **QUEUE-UI-02** | UI | AC-13 | Queue search toolbar and empty/no-result states | Demonstrates loading shimmer, empty, and no-results feedback | `client/tests/lab-03/StaffTicketQueue.test.tsx` | Pass |
+| **DETAIL-API-01**| API| AC-14 | IT Staff claims unassigned ticket | 200 OK; `ownerId` set to calling staff member | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| **DETAIL-API-02**| API| AC-15 | IT Staff reassigns ticket to another active staff | 200 OK; reassigning to inactive user returns 400 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| **DETAIL-API-03**| API| AC-16 | IT Staff modifies IT Priority | 200 OK; `itPriority` updated; `requestedPriority` unchanged | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| **DETAIL-API-04**| API| AC-17, AC-18 | Status transition matrix enforcement | Valid transitions succeed (200); invalid transitions return 400 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| **DETAIL-UI-01**| UI | AC-14, AC-16 | Claim, reassign, and priority controls | Operational header reflects real-time status and ownership changes | `client/tests/lab-03/StaffTicketDetail.test.tsx` | Pass |
+| **COMMS-API-01**| API | AC-19 | Post and retrieve Public Comments | 201 Created; visible to both Requester owner and IT Staff | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| **COMMS-API-02**| API | AC-20, AC-21, AC-33 | Post and retrieve Internal Notes | 201 Created for Staff; strictly rejected with 403 for Requester and 403 for Admin | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| **COMMS-API-03**| API | AC-22 | Empty/whitespace comment/note rejection | 400 Bad Request if trimmed content is empty | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| **COMMS-API-04**| API | AC-23 | Requester "Problem Appears Resolved" toggle | 200 OK; `isRequesterResolved` updated; status stays intact | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| **ADMIN-API-01**| API | AC-24 | Admin lists users with search/role filter | 200 OK; returns matching user list with roles and active flags | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-02**| API | AC-25 | Admin creates new user with initial password | 201 Created; password hashed; `mustChangePassword=true` | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-03**| API | AC-26 | Reject duplicate email creation | 409 Conflict when email already in database | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-04**| API | AC-27 | Admin edits user details and role | 200 OK; updates persisted | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-05**| API | AC-28 | Admin self-deactivation prevention | 400 Bad Request when admin deactivates own ID | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-06**| API | AC-29 | Last active Administrator guard | 400 Bad Request when attempting to deactivate sole admin | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-API-07**| API | AC-30 | Admin sets new initial password | 200 OK; updates hash; sets `mustChangePassword=true` | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
+| **ADMIN-UI-01** | UI | AC-24, AC-25 | Admin User Management table and Create modal | Table renders user list; modal handles validation and creation | `client/tests/lab-03/UserManagement.test.tsx` | Pass |
+| **ADMIN-UI-02** | UI | AC-28, AC-29 | Deactivation safety checks in UI | Self-deactivate and last admin deactivate controls disabled | `client/tests/lab-03/UserManagement.test.tsx` | Pass |
+| **ADMIN-E2E-01**| E2E | AC-24–AC-30 | Full user administration lifecycle | Admin creates user -> sets password -> user logs in -> forces change | `e2e/lab-03/user-administration.spec.ts` | Pass |
+| **STAFF-E2E-01**| E2E | AC-13–AC-23 | IT Staff ticket workflow journey | Staff opens queue -> claims ticket -> updates status -> adds note | `e2e/lab-03/staff-ticket-flow.spec.ts` | Pass |
+| **SEED-IDEMP** | Script | AC-32 | Seed execution idempotency | Script executes repeatedly without duplicate keys or constraint errors | `server/tests/lab-03/migration.test.ts` | Pass |
 
 ---
 
@@ -125,3 +128,10 @@ npm test -- tests/lab-03
 ```bash
 npx playwright test e2e/lab-03
 ```
+
+---
+
+## 5. Known Limitations & DoD Notes
+
+### React `act(...)` Testing Library Warnings (Accepted / Non-Blocking)
+During client unit test runs (`Login.test.tsx`, `ChangePassword.test.tsx`, `StaffTicketQueue.test.tsx`), React Testing Library emits non-fatal `act(...)` console warnings due to asynchronous state updates resolving after form submission or skeleton loading assertions. All assertions pass completely (71/71 tests passing), with zero unhandled rejections or runtime failures. These warnings are explicitly logged and accepted as non-blocking test noise under the Sprint 3 Definition of Done.

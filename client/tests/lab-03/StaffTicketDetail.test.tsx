@@ -376,7 +376,7 @@ describe("StaffTicketDetail Component UI Tests (DETAIL-UI-01)", () => {
         expect(notesSection).toHaveStyle({ backgroundColor: "rgb(255, 251, 235)" });
       });
 
-      expect(screen.getByText(/Internal IT Notes — Private to IT Staff & Admin/i)).toBeInTheDocument();
+      expect(screen.getByText(/Internal IT Notes — Private to IT Staff Only/i)).toBeInTheDocument();
       expect(screen.getByText("Investigated firewall logs on core switch. Detected intermittent packet loss.")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Add Internal Note/i })).toBeInTheDocument();
     });

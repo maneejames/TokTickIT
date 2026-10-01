@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import fs from "node:fs";
 import path from "node:path";
@@ -90,6 +90,33 @@ describe("Ticket Detail & Attachment API Tests (Issue #6)", () => {
       },
     });
     removedAttachmentId = removedAtt.id;
+  });
+
+  afterAll(async () => {
+    const prisma = getPrisma();
+    const testTickets = await prisma.ticket.findMany({
+      where: {
+        OR: [
+          { ticketNumber: { startsWith: "TICK-TEST-DET-" } },
+          { ticketNumber: { startsWith: "TICK-LIMIT-" } },
+        ],
+      },
+      include: { attachments: true },
+    });
+
+    const uploadDir = path.resolve(process.cwd(), "uploads", "attachments");
+    for (const t of testTickets) {
+      for (const att of t.attachments) {
+        const filePath = path.join(uploadDir, att.storedFilename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch {}
+        }
+      }
+      await prisma.publicComment.deleteMany({ where: { ticketId: t.id } });
+      await prisma.internalNote.deleteMany({ where: { ticketId: t.id } });
+      await prisma.attachment.deleteMany({ where: { ticketId: t.id } });
+      await prisma.ticket.delete({ where: { id: t.id } });
+    }
   });
 
   // ---------------------------------------------------------------------------

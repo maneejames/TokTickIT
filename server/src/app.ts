@@ -143,7 +143,7 @@ app.post("/api/auth/logout", requireAuth(), async (req: Request, res: Response) 
 });
 
 // GET /api/auth/me
-app.get("/api/auth/me", requireAuth(), async (req: Request, res: Response) => {
+app.get("/api/auth/me", requireAuth(true), async (req: Request, res: Response) => {
   return res.status(200).json({
     user: {
       id: req.user!.id,
