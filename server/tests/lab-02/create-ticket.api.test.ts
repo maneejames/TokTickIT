@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -30,6 +30,28 @@ describe("Create Ticket Tests", () => {
       where: { isActive: true },
     });
     validRelatedSystemId = system!.id;
+  });
+
+  afterAll(async () => {
+    const prisma = getPrisma();
+    const testTickets = await prisma.ticket.findMany({
+      where: {
+        summary: {
+          in: [
+            "Campus Wi-Fi disconnects intermittently in Building A",
+            "VPN access fails from off-campus locations",
+            "Valid trimmed summary",
+          ],
+        },
+      },
+    });
+    const ticketIds = testTickets.map((t) => t.id);
+    if (ticketIds.length > 0) {
+      await prisma.publicComment.deleteMany({ where: { ticketId: { in: ticketIds } } });
+      await prisma.internalNote.deleteMany({ where: { ticketId: { in: ticketIds } } });
+      await prisma.attachment.deleteMany({ where: { ticketId: { in: ticketIds } } });
+      await prisma.ticket.deleteMany({ where: { id: { in: ticketIds } } });
+    }
   });
 
   // TICK-UNIT-01: ticket number generator produces TICK-YYYYMMDD-XXXX, resets daily, no collisions under concurrent calls

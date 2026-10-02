@@ -801,7 +801,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
                 border: "1px solid #FCD34D",
               }}
             >
-              🔒 Internal IT Notes — Private to IT Staff & Admin (Requesters cannot see this)
+              🔒 Internal IT Notes — Private to IT Staff Only (Requesters cannot see this)
             </div>
 
             {/* Note Composer */}

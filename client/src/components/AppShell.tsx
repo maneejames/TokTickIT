@@ -154,12 +154,13 @@ export const AppShell: React.FC<AppShellProps> = ({
           {user ? (
             <div className="d-flex align-items-center gap-3">
               <div
-                className="d-flex align-items-center px-3 py-1 rounded-pill"
+                className="d-none d-sm-flex align-items-center px-3 py-1 rounded-pill"
                 style={{
                   backgroundColor: "rgba(255, 255, 255, 0.15)",
                   color: "#FFFFFF",
                   fontSize: "13px",
                   fontWeight: 500,
+                  whiteSpace: "nowrap",
                 }}
               >
                 <span className="me-1" aria-hidden="true">👤</span>
