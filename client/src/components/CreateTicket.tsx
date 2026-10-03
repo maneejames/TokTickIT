@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Category,
   RelatedSystem,
-  RequesterUser,
+  User,
   Ticket,
   getCategories,
   getRelatedSystems,
@@ -11,7 +11,7 @@ import {
 } from "../api.js";
 
 interface CreateTicketProps {
-  currentRequester: RequesterUser;
+  currentRequester: User;
   onNavigateToMyTickets?: () => void;
   onNavigateToTicketDetail?: (ticketId: number) => void;
 }

@@ -6,10 +6,12 @@ import * as api from "../../src/api.js";
 import { RequesterContextType } from "../../src/context/RequesterContext.js";
 
 // Mock Requester Context
-const mockRequester: api.RequesterUser = {
+const mockRequester: api.User = {
   id: 1,
   name: "Somchai Jaidee",
   email: "somchai.jai@kmutt.ac.th",
+  role: "REQUESTER",
+  mustChangePassword: false,
   department: "Engineering",
   isActive: true,
 };

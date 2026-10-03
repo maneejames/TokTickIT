@@ -5,10 +5,12 @@ import { RequesterTicketDetail } from "../../src/components/RequesterTicketDetai
 import * as api from "../../src/api.js";
 
 describe("RequesterTicketDetail Component UI Tests", () => {
-  const mockRequester: api.RequesterUser = {
+  const mockRequester: api.User = {
     id: 1,
     name: "Somchai Jaidee",
     email: "somchai.jai@kmutt.ac.th",
+    role: "REQUESTER",
+    mustChangePassword: false,
     department: "Engineering",
     isActive: true,
   };
