@@ -169,16 +169,24 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             type="submit"
             className="zen-btn-primary w-100 d-flex align-items-center justify-content-center gap-2"
             disabled={isSubmitting}
-            style={{ minHeight: "42px" }}
+            style={{
+              minHeight: "42px",
+              backgroundColor: isSubmitting ? "var(--color-primary-green)" : undefined,
+              color: "#FFFFFF",
+              opacity: isSubmitting ? 0.85 : 1,
+            }}
           >
             {isSubmitting && (
               <span
                 className="spinner-border spinner-border-sm"
                 role="status"
                 aria-hidden="true"
+                style={{ color: "#FFFFFF" }}
               />
             )}
-            <span>{isSubmitting ? "Signing In..." : "Sign In"}</span>
+            <span style={{ color: "#FFFFFF", fontWeight: 600 }}>
+              {isSubmitting ? "Signing In..." : "Sign In"}
+            </span>
           </button>
         </form>
       </div>

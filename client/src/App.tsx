@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { User } from "./api.js";
 import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import { AppShell } from "./components/AppShell.js";
 import { Login } from "./components/Login.js";
@@ -115,12 +116,10 @@ function MainContent() {
   }
 
   // Active requester identity derived from authenticated user
-  const activeRequesterObj = {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    department: "IT",
-    isActive: true,
+  const activeRequesterObj: User = {
+    ...user,
+    department: user.department ?? "IT",
+    isActive: user.isActive ?? true,
   };
 
   return (

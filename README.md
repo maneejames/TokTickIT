@@ -341,4 +341,37 @@ main
 4. **Release PR (`lab3-staging` → `main`)**:
    - Once all criteria of the Engineering Contract and Definition of Done are satisfied, a final release PR merges `lab3-staging` into `main`.
 
+---
+
+## 🌿 Lab 4 Branching & Staging Workflow
+
+TokTickIT follows a strict staged integration workflow for Lab 4:
+feature branch → PR → `lab4-staging` → release PR → `main`
+
+```text
+main
+  └── lab4-staging
+        ├── feature/lab4-spec-doc
+        ├── feature/lab4-spec-review
+        ├── feature/lab4-actions-taken-foundation
+        ├── feature/lab4-actions-taken-ui
+        ├── feature/lab4-ticket-workflow
+        ├── feature/lab4-dashboards
+        ├── feature/lab4-final-hardening
+        ├── feature/lab4-completion-review
+        └── release/lab4-staging-to-main
+```
+
+### Workflow Rules:
+1. **Never commit directly to `main` or `lab4-staging`**: All development work occurs in dedicated feature branches branched off `lab4-staging`.
+2. **Feature Branch → `lab4-staging`**:
+   - Each feature branch addresses a specific GitHub Issue (e.g., `feature/lab4-spec-doc` for Issue #1, `feature/lab4-actions-taken-foundation` for Issue #3).
+   - Once implementation, automated tests, and lint checks pass, a Pull Request is opened against `lab4-staging`.
+   - Peer review, human approval, and test verification are documented in `docs/lab-04/reviewer.md` and `docs/lab-04/ai-use.md`.
+3. **Completion Review & Audit on `lab4-staging`**:
+   - Full regression runs (backend unit/API, frontend RTL, Playwright E2E) and contract audits are performed.
+   - Screenshots across viewports are captured into `artifacts/lab-04/screenshots/`.
+4. **Release PR (`lab4-staging` → `main`)**:
+   - Once all criteria of the Engineering Contract and Definition of Done are satisfied, a final release PR merges `lab4-staging` into `main`.
+
 
