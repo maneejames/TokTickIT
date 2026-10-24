@@ -246,11 +246,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   return (
     <div className="container py-4" style={{ maxWidth: "1280px" }}>
       {/* Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
         <h1 className="h3 mb-0" style={{ color: "var(--color-primary-green)", fontWeight: 700 }}>
           User Account Management
         </h1>
-        <button type="button" className="zen-btn-primary" onClick={openCreateModal}>
+        <button type="button" className="zen-btn-primary w-100 w-sm-auto text-nowrap" onClick={openCreateModal}>
           + Create New User
         </button>
       </div>
@@ -330,9 +330,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
       {/* Users Table */}
       {!isLoading && !apiError && (
-        <div className="zen-card mb-4" style={{ overflow: "hidden" }}>
+        <div className="zen-card user-mgmt-card-wrapper mb-4" style={{ overflow: "hidden" }}>
           <div className="table-responsive" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-            <table className="table table-hover align-middle mb-0" style={{ borderCollapse: "collapse", minWidth: "680px" }}>
+            <table className="table table-hover align-middle mb-0 user-table-card-view" style={{ borderCollapse: "collapse" }}>
               <thead style={{ backgroundColor: "#F9FAF9", borderBottom: "2px solid var(--color-border)" }}>
                 <tr>
                   <th style={{ padding: "12px 16px" }}>Name</th>
@@ -346,17 +346,23 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-4 text-muted">
+                    <td colSpan={6} className="text-center py-4 text-muted user-cell-empty">
                       No users match your search criteria.
                     </td>
                   </tr>
                 ) : (
                   users.map((u) => (
                     <tr key={u.id}>
-                      <td style={{ padding: "12px 16px", fontWeight: 600, color: "var(--color-text-main)" }}>{u.name}</td>
-                      <td style={{ padding: "12px 16px", color: "#4B5563", fontSize: "14px" }}>{u.email}</td>
-                      <td style={{ padding: "12px 16px" }}>{roleBadge(u.role)}</td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td className="user-cell-name" style={{ padding: "12px 16px", fontWeight: 600, color: "var(--color-text-main)" }}>
+                        {u.name}
+                      </td>
+                      <td className="user-cell-email" style={{ padding: "12px 16px", color: "#4B5563", fontSize: "14px" }}>
+                        {u.email}
+                      </td>
+                      <td className="user-cell-role" style={{ padding: "12px 16px" }}>
+                        {roleBadge(u.role)}
+                      </td>
+                      <td className="user-cell-status" style={{ padding: "12px 16px" }}>
                         {u.isActive ? (
                           <span style={{ backgroundColor: "#DCFCE7", color: "#166534", border: "1px solid #86EFAC", borderRadius: "12px", padding: "2px 10px", fontSize: "12px", fontWeight: 600 }}>
                             Active
@@ -367,7 +373,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td className="user-cell-pwd" style={{ padding: "12px 16px" }}>
                         {u.mustChangePassword ? (
                           <span style={{ backgroundColor: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", borderRadius: "12px", padding: "2px 10px", fontSize: "12px", fontWeight: 600 }}>
                             Required
@@ -376,7 +382,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                           <span className="text-muted" style={{ fontSize: "12px" }}>—</span>
                         )}
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                      <td className="user-cell-actions" style={{ padding: "12px 16px", textAlign: "right" }}>
                         <button
                           type="button"
                           className="zen-btn-secondary py-1 px-3"
@@ -398,8 +404,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       {/* ======================= CREATE MODAL ======================= */}
       {showCreateModal && (
         <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setShowCreateModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content zen-card p-4">
+          <div className="modal-dialog modal-dialog-centered px-2 px-sm-0" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content zen-card p-3 p-sm-4">
               <h3 className="h5 fw-bold mb-4" style={{ color: "var(--color-primary-green)" }}>Create New User</h3>
 
               {createApiError && (
@@ -446,9 +452,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 <label htmlFor="create-active" className="form-check-label" style={{ fontWeight: 500 }}>Account Active</label>
               </div>
 
-              <div className="d-flex gap-2 justify-content-end">
-                <button type="button" className="zen-btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                <button type="button" className="zen-btn-primary" onClick={handleCreateUser} disabled={isCreating}>
+              <div className="d-flex flex-column-reverse flex-sm-row gap-2 justify-content-end">
+                <button type="button" className="zen-btn-secondary w-100 w-sm-auto" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="button" className="zen-btn-primary w-100 w-sm-auto" onClick={handleCreateUser} disabled={isCreating}>
                   {isCreating ? "Creating..." : "Create User"}
                 </button>
               </div>
@@ -460,8 +466,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       {/* ======================= EDIT MODAL ======================= */}
       {showEditModal && editingUser && (
         <div className="modal d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setShowEditModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content zen-card p-4">
+          <div className="modal-dialog modal-dialog-centered px-2 px-sm-0" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content zen-card p-3 p-sm-4">
               <h3 className="h5 fw-bold mb-4" style={{ color: "var(--color-primary-green)" }}>Edit User</h3>
 
               {editApiError && (
@@ -524,9 +530,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 )}
               </div>
 
-              <div className="d-flex gap-2 justify-content-end">
-                <button type="button" className="zen-btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
-                <button type="button" className="zen-btn-primary" onClick={handleSaveChanges} disabled={isEditing}>
+              <div className="d-flex flex-column-reverse flex-sm-row gap-2 justify-content-end">
+                <button type="button" className="zen-btn-secondary w-100 w-sm-auto" onClick={() => setShowEditModal(false)}>Cancel</button>
+                <button type="button" className="zen-btn-primary w-100 w-sm-auto" onClick={handleSaveChanges} disabled={isEditing}>
                   {isEditing ? "Saving..." : "Save Changes"}
                 </button>
               </div>
