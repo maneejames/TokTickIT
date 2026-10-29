@@ -146,6 +146,7 @@ Any transition not listed is rejected (BR-08). A Requester never changes formal 
 2. No backfill is needed for `ActionTaken` — legacy tickets start with zero records, which the UI renders as an empty state, not an error.
 3. Verify via regression test that every Lab 1–3 ticket, attachment, comment, and note is unchanged in count and content after migration.
 4. Document and test a recovery approach (e.g., restore from a pre-migration database dump) as required by the handout.
+5. Idempotent seed data: extends seed to cover tickets across all statuses, priorities, and ownership states, with tickets having zero, one, and multiple Actions Taken, plus zero and non-zero dashboard scenarios for each role (including a Requester with 0 tickets and an IT Staff with 0 owned tickets to verify empty dashboard states).
 
 ## 8. API Contract
 
@@ -156,6 +157,7 @@ Full detail lives in `api-spec.md`. Summary of endpoint groups:
 - `GET /api/dashboard/requester` — Requester dashboard metrics
 - `GET /api/dashboard/staff` — IT Staff dashboard metrics (Administrator reuses)
 - Existing `PATCH /api/staff/tickets/:id/status`, `PATCH /api/staff/tickets/:id/owner`, and `PATCH /api/staff/tickets/:id/priority` extended to require `expectedVersion` and return `409 Conflict` on stale-version updates
+- Existing `GET /api/staff/tickets` extended with optional `requesterResolved=true|false` filter for dashboard drill-down; `GET /api/tickets` extended to accept comma-separated `status` values
 
 ## 9. Acceptance Criteria
 
@@ -199,5 +201,6 @@ Full detail lives in `api-spec.md`. Summary of endpoint groups:
 - **D-2 (adopted)**: Actions Taken content is fully append-only — no edit endpoint for description/result/follow-up fields, ever. Only assignment and status (Complete/Cancel) can change, through dedicated endpoints, and only those two things. The handout's "view/edit mode" is satisfied by assign/complete/cancel plus the create form, not by content editing.
 - **D-3 (adopted)**: Administrator performs IT Staff behavior (BR-17, FR-19), as the Lab 4 rule in its own right.
 - Optimistic concurrency uses a `version` counter on `Ticket` rather than `updatedAt` comparison, for simpler, unambiguous conflict detection.
-- "Recently updated" and "recently resolved" dashboard lists use a rolling window (proposed: last 7 days, max 5 items) — exact values and time-zone/date-boundary rules to be fixed in `api-spec.md` during review.
+- "Recently updated" and "recently resolved" dashboard lists use a strict rolling 7-day window (last 168 hours: `updatedAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)`) evaluated in UTC in backend queries, max 5 items, sorted by `updatedAt DESC`. Timestamps are formatted in `Asia/Bangkok` (UTC+7) in UI presentation.
 - The Administrator dashboard reuses the IT Staff dashboard endpoint, with an optional concise user-account-count card, per §4.6 of the handout.
+

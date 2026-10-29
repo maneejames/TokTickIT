@@ -146,8 +146,8 @@ Metrics are computed by the backend only (BR-13). "Non-terminal" = `NEW, OPEN, I
     "recentlyResolved": [ { "id": 9,  "ticketNumber": "…", "summary": "…", "status": "RESOLVED", "updatedAt": "…" } ]
   }
   ```
-- **Definitions**: `activeTickets` = own tickets in non-terminal statuses; `waitingForRequester` is a subset of active (needs the Requester's attention). `recentlyUpdated` = own tickets with `updatedAt` in last 7 days, newest first, max 5. `recentlyResolved` = own tickets with `status = RESOLVED` and `updatedAt` in last 7 days, newest first, max 5.
-- **Drill-down target**: existing `GET /api/tickets` (My Tickets). **API change**: its `status` filter now accepts a comma-separated list (backward compatible with the single-value Lab 2 behavior; invalid value → 400).
+- **Definitions**: `activeTickets` = own tickets in non-terminal statuses; `waitingForRequester` is a subset of active (needs the Requester's attention). `recentlyUpdated` = own tickets with strict rolling 7-day window (`updatedAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)` in UTC), newest first, max 5. `recentlyResolved` = own tickets with `status = RESOLVED` and `updatedAt` in last 7 days (168 hours UTC), newest first, max 5.
+- **Drill-down target**: existing `GET /api/tickets` (My Tickets). **API change**: its `status` filter now accepts a comma-separated list of any valid `TicketStatus` values (backward compatible with single-value Lab 2 behavior; invalid value → 400).
 
 ### 4.2 IT Staff — `GET /api/dashboard/staff`
 - **Access**: IT Staff, Administrator (reuses the same endpoint). Requester → `403`.
@@ -168,7 +168,7 @@ Metrics are computed by the backend only (BR-13). "Non-terminal" = `NEW, OPEN, I
     "myRecentActions": [ { "id": 31, "ticketId": 12, "ticketNumber": "…", "descriptionPreview": "Replaced faulty battery", "followUpRequired": true, "actionDateTime": "…" } ]
   }
   ```
-- **Definitions**: `byStatus` counts all tickets by status (all eight keys always present, 0 when empty). `unassigned` = `ownerId IS NULL` and non-terminal. `myOwned` = `ownerId = session user` and non-terminal (BR-12). `byItPriority` = non-terminal tickets by `itPriority`. `requesterResolvedPending` = `isRequesterResolved = true` and status in the four statuses listed (awaiting IT Staff verification). `myFollowUps` = Actions Taken by the session user with `followUpRequired = true` on non-terminal tickets (no drill-down; informational). `urgentTickets` = non-terminal with `itPriority = URGENT`, oldest first, max 5. `recentlyUpdated` = `updatedAt` in last 7 days, newest first, max 5. `myRecentActions` = latest 5 Actions Taken by the session user.
+- **Definitions**: `byStatus` counts all tickets by status (all eight keys always present, 0 when empty). `unassigned` = `ownerId IS NULL` and non-terminal. `myOwned` = `ownerId = session user` and non-terminal (BR-12). `byItPriority` = non-terminal tickets by `itPriority`. `requesterResolvedPending` = `isRequesterResolved = true` and status in the four statuses listed (awaiting IT Staff verification). `myFollowUps` = Actions Taken by the session user with `followUpRequired = true` on non-terminal tickets (no drill-down; informational). `urgentTickets` = non-terminal with `itPriority = URGENT`, oldest first, max 5. `recentlyUpdated` = strict rolling 7-day window (`updatedAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)` in UTC), newest first, max 5. `myRecentActions` = latest 5 Actions Taken by the session user.
 - **Drill-down target**: existing `GET /api/staff/tickets`. **API change**: add optional filter `requesterResolved=true|false` (invalid → 400). Existing `status`, `priority`, `ownerId` filters already support these values.
 - **Consistency rule (AC-08, AC-09)**: for every metric with a `drillDown`, `GET <list>?<drillDown>` must return `pagination.totalItems == count`.
 
