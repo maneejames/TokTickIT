@@ -2758,4 +2758,589 @@ function getExtensionFromMime(mime: string): string {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Lab 4 Issue 3 - Actions Taken Foundation Endpoints
+// ---------------------------------------------------------------------------
+
+function formatActionTaken(action: any) {
+  return {
+    id: action.id,
+    ticketId: action.ticketId,
+    actionDateTime: action.actionDateTime instanceof Date ? action.actionDateTime.toISOString() : action.actionDateTime,
+    description: action.description,
+    result: action.result,
+    performedBy: action.performedBy
+      ? { id: action.performedBy.id, name: action.performedBy.name }
+      : { id: action.performedById, name: "" },
+    assignee: action.assignee
+      ? { id: action.assignee.id, name: action.assignee.name }
+      : null,
+    status: action.status,
+    completedAt: action.completedAt ? (action.completedAt instanceof Date ? action.completedAt.toISOString() : action.completedAt) : null,
+    followUpRequired: action.followUpRequired,
+    followUpNote: action.followUpNote ?? null,
+    attachmentNotes: action.attachmentNotes ?? null,
+    version: action.version,
+    createdAt: action.createdAt instanceof Date ? action.createdAt.toISOString() : action.createdAt,
+    updatedAt: action.updatedAt instanceof Date ? action.updatedAt.toISOString() : action.updatedAt,
+  };
+}
+
+// 2.1 List: GET /api/tickets/:id/actions
+app.get("/api/tickets/:id/actions", requireAuth(), async (req: Request, res: Response) => {
+  const ticketId = Number(req.params.id);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    return res.status(404).json({
+      error: {
+        code: "NOT_FOUND",
+        message: "Ticket not found",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, requesterId: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    // Requester can only view actions on their own tickets
+    if (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    const actions = await (prisma as any).actionTaken.findMany({
+      where: { ticketId },
+      include: {
+        performedBy: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+      orderBy: [
+        { actionDateTime: "asc" },
+        { id: "asc" },
+      ],
+    });
+
+    return res.status(200).json({
+      items: actions.map(formatActionTaken),
+    });
+  } catch (err: unknown) {
+    console.error("GET /api/tickets/:id/actions error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to fetch actions",
+      },
+    });
+  }
+});
+
+// 2.2 Create: POST /api/tickets/:id/actions
+app.post("/api/tickets/:id/actions", requireAuth(), async (req: Request, res: Response) => {
+  if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      },
+    });
+  }
+
+  const ticketId = Number(req.params.id);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    return res.status(404).json({
+      error: {
+        code: "NOT_FOUND",
+        message: "Ticket not found",
+      },
+    });
+  }
+
+  const idempotencyKey = req.header("Idempotency-Key")?.trim();
+  if (!idempotencyKey) {
+    return res.status(400).json({
+      error: {
+        code: "MISSING_IDEMPOTENCY_KEY",
+        message: "Idempotency-Key header is required",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    // Check closed or cancelled ticket (BR-18, AC-18)
+    if (ticket.currentStatus === "CLOSED" || ticket.currentStatus === "CANCELLED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Cannot add action to a closed or cancelled ticket",
+        },
+      });
+    }
+
+    // Idempotent replay check (ACT-API-06)
+    const existing = await (prisma as any).actionTaken.findUnique({
+      where: {
+        ticketId_clientRequestId: {
+          ticketId,
+          clientRequestId: idempotencyKey,
+        },
+      },
+      include: {
+        performedBy: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+    });
+
+    if (existing) {
+      return res.status(200).json(formatActionTaken(existing));
+    }
+
+    const {
+      description,
+      result,
+      followUpRequired,
+      followUpNote,
+      attachmentNotes,
+      assigneeId,
+      actionDateTime,
+    } = req.body ?? {};
+
+    // Validate description: required trimmed string 1-500
+    if (typeof description !== "string" || description.trim().length === 0 || description.trim().length > 500) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Description is required and must be between 1 and 500 characters",
+        },
+      });
+    }
+
+    // Validate result: required trimmed string 1-1000
+    if (typeof result !== "string" || result.trim().length === 0 || result.trim().length > 1000) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Result is required and must be between 1 and 1000 characters",
+        },
+      });
+    }
+
+    // Validate followUpRequired: boolean, defaults to false if omitted
+    const isFollowUpRequired = followUpRequired === undefined ? false : followUpRequired;
+    if (typeof isFollowUpRequired !== "boolean") {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "followUpRequired must be a boolean",
+        },
+      });
+    }
+
+    // Validate followUpNote: required and non-blank iff followUpRequired = true (BR-05)
+    let cleanedFollowUpNote: string | null = null;
+    if (isFollowUpRequired) {
+      if (typeof followUpNote !== "string" || followUpNote.trim().length === 0 || followUpNote.trim().length > 1000) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "followUpNote is required and cannot be blank when followUpRequired is true (1-1000 characters)",
+          },
+        });
+      }
+      cleanedFollowUpNote = followUpNote.trim();
+    } else {
+      if (followUpNote !== undefined && followUpNote !== null) {
+        if (typeof followUpNote === "string") {
+          cleanedFollowUpNote = followUpNote.trim() || null;
+        }
+      }
+    }
+
+    // Validate attachmentNotes: optional <= 500 chars
+    let cleanedAttachmentNotes: string | null = null;
+    if (attachmentNotes !== undefined && attachmentNotes !== null) {
+      if (typeof attachmentNotes !== "string" || attachmentNotes.trim().length > 500) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "attachmentNotes must not exceed 500 characters",
+          },
+        });
+      }
+      cleanedAttachmentNotes = attachmentNotes.trim() || null;
+    }
+
+    // Validate assigneeId: optional active IT_STAFF or ADMINISTRATOR
+    let targetAssigneeId: number | null = null;
+    if (assigneeId !== undefined && assigneeId !== null) {
+      const parsedAssigneeId = Number(assigneeId);
+      if (!Number.isInteger(parsedAssigneeId) || parsedAssigneeId <= 0) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "assigneeId must be a positive integer",
+          },
+        });
+      }
+
+      const assigneeUser = await prisma.user.findUnique({
+        where: { id: parsedAssigneeId },
+      });
+
+      if (!assigneeUser || !assigneeUser.isActive || assigneeUser.role === "REQUESTER") {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_ASSIGNEE",
+            message: "Assignee must be an active IT Staff or Administrator",
+          },
+        });
+      }
+      targetAssigneeId = parsedAssigneeId;
+    }
+
+    // Validate actionDateTime: default now, must not be > 5 mins in future
+    let parsedActionDateTime = new Date();
+    if (actionDateTime !== undefined && actionDateTime !== null) {
+      const parsed = new Date(actionDateTime);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "actionDateTime must be a valid date",
+          },
+        });
+      }
+      if (parsed.getTime() > Date.now() + 5 * 60 * 1000) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "actionDateTime cannot be more than 5 minutes in the future",
+          },
+        });
+      }
+      parsedActionDateTime = parsed;
+    }
+
+    const created = await (prisma as any).actionTaken.create({
+      data: {
+        ticketId,
+        performedById: req.user!.id,
+        assigneeId: targetAssigneeId,
+        status: "PLANNED",
+        actionDateTime: parsedActionDateTime,
+        completedAt: null,
+        description: description.trim(),
+        result: result.trim(),
+        followUpRequired: isFollowUpRequired,
+        followUpNote: cleanedFollowUpNote,
+        attachmentNotes: cleanedAttachmentNotes,
+        version: 0,
+        clientRequestId: idempotencyKey,
+      },
+      include: {
+        performedBy: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+    });
+
+    return res.status(201).json(formatActionTaken(created));
+  } catch (err: unknown) {
+    console.error("POST /api/tickets/:id/actions error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to create action",
+      },
+    });
+  }
+});
+
+// 2.3 Reassign: PATCH /api/tickets/:id/actions/:actionId/assign
+app.patch("/api/tickets/:id/actions/:actionId/assign", requireAuth(), async (req: Request, res: Response) => {
+  if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      },
+    });
+  }
+
+  const ticketId = Number(req.params.id);
+  const actionId = Number(req.params.actionId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0 || !Number.isInteger(actionId) || actionId <= 0) {
+    return res.status(404).json({
+      error: {
+        code: "NOT_FOUND",
+        message: "Ticket or action not found",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    if (ticket.currentStatus === "CLOSED" || ticket.currentStatus === "CANCELLED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Cannot modify action on a closed or cancelled ticket",
+        },
+      });
+    }
+
+    const action = await (prisma as any).actionTaken.findFirst({
+      where: { id: actionId, ticketId },
+    });
+
+    if (!action) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Action not found",
+        },
+      });
+    }
+
+    if (action.status !== "PLANNED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Cannot reassign a completed or cancelled action",
+        },
+      });
+    }
+
+    const { assigneeId, expectedVersion } = req.body ?? {};
+    if (typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "expectedVersion is required and must be an integer",
+        },
+      });
+    }
+
+    if (action.version !== expectedVersion) {
+      return res.status(409).json({
+        error: {
+          code: "VERSION_CONFLICT",
+          message: `Action version conflict (expected ${expectedVersion}, current ${action.version})`,
+        },
+      });
+    }
+
+    let targetAssigneeId: number | null = null;
+    if (assigneeId !== null && assigneeId !== undefined) {
+      const parsedId = Number(assigneeId);
+      if (!Number.isInteger(parsedId) || parsedId <= 0) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "assigneeId must be a positive integer or null",
+          },
+        });
+      }
+
+      const assigneeUser = await prisma.user.findUnique({
+        where: { id: parsedId },
+      });
+
+      if (!assigneeUser || !assigneeUser.isActive || assigneeUser.role === "REQUESTER") {
+        return res.status(400).json({
+          error: {
+            code: "INVALID_ASSIGNEE",
+            message: "Assignee must be an active IT Staff or Administrator",
+          },
+        });
+      }
+      targetAssigneeId = parsedId;
+    }
+
+    const updated = await (prisma as any).actionTaken.update({
+      where: { id: actionId },
+      data: {
+        assigneeId: targetAssigneeId,
+        version: { increment: 1 },
+      },
+      include: {
+        performedBy: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+    });
+
+    return res.status(200).json(formatActionTaken(updated));
+  } catch (err: unknown) {
+    console.error("PATCH /api/tickets/:id/actions/:actionId/assign error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to reassign action",
+      },
+    });
+  }
+});
+
+// 2.4 Complete / Cancel: PATCH /api/tickets/:id/actions/:actionId/status
+app.patch("/api/tickets/:id/actions/:actionId/status", requireAuth(), async (req: Request, res: Response) => {
+  if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      },
+    });
+  }
+
+  const ticketId = Number(req.params.id);
+  const actionId = Number(req.params.actionId);
+  if (!Number.isInteger(ticketId) || ticketId <= 0 || !Number.isInteger(actionId) || actionId <= 0) {
+    return res.status(404).json({
+      error: {
+        code: "NOT_FOUND",
+        message: "Ticket or action not found",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
+    if (ticket.currentStatus === "CLOSED" || ticket.currentStatus === "CANCELLED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Cannot modify action on a closed or cancelled ticket",
+        },
+      });
+    }
+
+    const action = await (prisma as any).actionTaken.findFirst({
+      where: { id: actionId, ticketId },
+    });
+
+    if (!action) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Action not found",
+        },
+      });
+    }
+
+    if (action.status !== "PLANNED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Only PLANNED actions can change status",
+        },
+      });
+    }
+
+    const { status, expectedVersion } = req.body ?? {};
+    if (typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "expectedVersion is required and must be an integer",
+        },
+      });
+    }
+
+    if (action.version !== expectedVersion) {
+      return res.status(409).json({
+        error: {
+          code: "VERSION_CONFLICT",
+          message: `Action version conflict (expected ${expectedVersion}, current ${action.version})`,
+        },
+      });
+    }
+
+    if (status !== "COMPLETED" && status !== "CANCELLED") {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "status must be COMPLETED or CANCELLED",
+        },
+      });
+    }
+
+    const updated = await (prisma as any).actionTaken.update({
+      where: { id: actionId },
+      data: {
+        status,
+        completedAt: status === "COMPLETED" ? new Date() : null,
+        version: { increment: 1 },
+      },
+      include: {
+        performedBy: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+    });
+
+    return res.status(200).json(formatActionTaken(updated));
+  } catch (err: unknown) {
+    console.error("PATCH /api/tickets/:id/actions/:actionId/status error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to update action status",
+      },
+    });
+  }
+});
+
 export default app;
