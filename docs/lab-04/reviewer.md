@@ -15,7 +15,7 @@
 | #1 | AI Specification Agent — Engineering Contract | `feature/lab4-spec-doc` | [PR #67](https://github.com/maneejames/TokTickIT/pull/67) | Approved by @JEWKEW | 2026-10-24T07:05:50Z | Merged |
 | #2 | Review Contract — Ambiguity Resolution | `feature/lab4-spec-review` | [PR #68](https://github.com/maneejames/TokTickIT/pull/68) | Approved by @JEWKEW | 2026-10-29T14:13:52Z | Merged |
 | #3 | Implement — Actions Taken Foundation | `feature/lab4-actions-taken-foundation` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #4 | Implement — Actions Taken UI | `feature/lab4-actions-taken-ui` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
+| #4 | Implement — Actions Taken UI | `feature/lab4-actions-taken-ui` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
 | #5 | Implement — Ticket Workflow & Resolution Gate | `feature/lab4-ticket-workflow` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 | #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 | #7 | Final Hardening & Regression | `feature/lab4-final-hardening` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
@@ -74,6 +74,23 @@
 > *(Pending review)*
 
 **Final verified state:** Actions Taken Foundation implemented, migration applied, seed updated, and all 251 server tests passing.
+
+---
+
+### Issue 4: Actions Taken UI — `feature/lab4-actions-taken-ui`
+
+- **PR:** *(Pending PR)*
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Pending Review.
+
+**Yotsapoom commented:**
+> *(Pending review)*
+
+**I responded:**
+> *(Pending review)*
+
+**Final verified state:** Actions Taken UI implemented on IT Staff and Requester Ticket Detail, 7/7 unit/UI tests passing, all 78 client tests passing, TypeScript compile clean, and 12 responsive screenshots captured.
 
 ---
 

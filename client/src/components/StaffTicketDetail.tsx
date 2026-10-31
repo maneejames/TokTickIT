@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ActionsTaken } from "./ActionsTaken.js";
 import {
   TicketDetail,
   Attachment,
@@ -778,6 +779,16 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Actions Taken Section */}
+      <div className="zen-card p-4 p-md-5 mb-4 shadow-sm" data-testid="actions-taken-card">
+        <ActionsTaken
+          ticketId={ticket.id}
+          currentUser={currentUser}
+          isStaffOrAdmin={true}
+          ticketAttachments={activeAttachments}
+        />
       </div>
 
       {/* Communication Hub: Internal Notes & Public Comments */}
