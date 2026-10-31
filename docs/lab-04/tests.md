@@ -68,13 +68,13 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
 | REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
 | REG-03 | Regression | FR-15 | Lab 3 E2E (authentication, staff flow, user administration) | All pass | `e2e/lab-03/` | Planned |
-| ACT-UI-01 | UI | FR-01, FR-03 | List renders columns, multiple actions in stable order; empty state | As ui-spec §4.1 | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-02 | UI | AC-04, BR-05 | Follow-up note appears and becomes required when toggle = Yes; inline error; focus to first invalid field | As ui-spec §4.2 | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-03 | UI | FR-16, AC-14 | Save disables while submitting; double click sends one request; retry reuses key | One request | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-04 | UI | FR-16 | Failure keeps entered text and shows banner | Text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-05 | UI | AC-12, BR-03 | Requester view has no Add/Edit controls rendered | Absent from DOM | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-06 | UI | BR-06 | No Edit control anywhere (content always read-only); 409 on Reassign/Complete/Cancel shows conflict message; Completed/Cancelled rows show no Reassign/Complete/Cancel controls; no Delete control anywhere | As ui-spec §4.3 | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
-| ACT-UI-07 | UI | AC-15, AC-16 | Assignee select lists only active staff/admin; Complete/Cancel buttons on Planned rows with cancel confirmation; status badge has text | As ui-spec §4.3–4.4 | `client/tests/lab-04/ActionsTaken.test.tsx` | Planned |
+| ACT-UI-01 | UI | FR-01, FR-03 | List renders columns, multiple actions in stable order; empty state | As ui-spec §4.1 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-02 | UI | AC-04, BR-05 | Follow-up note appears and becomes required when toggle = Yes; inline error; focus to first invalid field | As ui-spec §4.2 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-03 | UI | FR-16, AC-14 | Save disables while submitting; double click sends one request; retry reuses key | One request | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-04 | UI | FR-16 | Failure keeps entered text and shows banner | Text preserved | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-05 | UI | AC-12, BR-03 | Requester view has no Add/Edit controls rendered | Absent from DOM | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-06 | UI | BR-06 | No Edit control anywhere (content always read-only); 409 on Reassign/Complete/Cancel shows conflict message; Completed/Cancelled rows show no Reassign/Complete/Cancel controls; no Delete control anywhere | As ui-spec §4.3 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
+| ACT-UI-07 | UI | AC-15, AC-16 | Assignee select lists only active staff/admin; Complete/Cancel buttons on Planned rows with cancel confirmation; status badge has text | As ui-spec §4.3–4.4 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | WF-UI-01 | UI | FR-07, §5 | Buttons shown only for permitted transitions for each of the 8 statuses | Correct sets | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
 | WF-UI-02 | UI | §5 | Success refreshes summary badge/owner/priority and announces via `aria-live` | Refreshed | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
 | WF-UI-03 | UI | AC-05, AC-06 | 400 and 409 responses show the specified messages; bar re-renders from server state | As ui-spec §5 | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
