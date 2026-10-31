@@ -19,26 +19,26 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 
 | Test ID | Type | Req / AC | What It Tests | Expected Result | Automated Test File | Final |
 |---|---|---|---|---|---|---|
-| ACT-API-01 | API | AC-01, FR-01, FR-04 | IT Staff creates a valid Action Taken | 201; saved under the correct ticket; `performedBy` = session user | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-02 | API | AC-01, BR-04 | Client-supplied `performedById` ignored | Stored author is the session user | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-03 | API | AC-04, BR-05 | `followUpRequired=true` without note (missing / whitespace) | 400 with field error on `followUpNote` | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-04 | API | BR-05 | `followUpRequired=false` with no note | 201 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-05 | API | FR-01 | Field validation (empty/oversized description, result, attachmentNotes; future date) | 400 per field rule | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-06 | API | AC-14, FR-16 | Same `Idempotency-Key` sent twice | One record; second call returns the original (200) | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-07 | API | FR-16 | Missing `Idempotency-Key` | 400 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-08 | API | FR-06, BR-01, BR-02 | Two different IT Staff add actions to a ticket owned by a third | Both saved; list shows both authors; ordering stable | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-09 | API | BR-06, AC-06 | Reassign and Complete/Cancel each with a stale `expectedVersion` | 409 and nothing written | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-10 | API | BR-04, BR-06 | No endpoint accepts `description`, `result`, `followUpRequired`, `followUpNote`, or `attachmentNotes` after creation (reassign/status endpoints reject these fields or ignore them); `performedBy`/`ticketId`/`createdAt` unchanged | Content provably immutable | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-11 | API | AC-10, BR-14 | List on a legacy ticket with no actions | 200 with `items: []` | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-12 | API | AC-12, FR-03 | Requester lists actions on own ticket | 200, full list | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-13 | API | AC-15, BR-15 | Assignee inactive / non-existent / Requester | 400; nothing saved | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-14 | API | AC-16, BR-16 | Complete and cancel a Planned action; invalid status changes (Completed→Planned, Cancelled→Completed) | 200 with `completedAt` set / 400 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-15 | API | AC-18, BR-18 | Create and edit on a Closed and a Cancelled ticket | 400 INVALID_STATE | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-API-16 | API | BR-06 | No DELETE route anywhere; reassign/status on a Completed/Cancelled record is rejected | 404/405; 400 INVALID_STATE | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-AUTHZ-01 | Authorization | AC-03, BR-03 | Requester POST and PATCH actions | 403 on both | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-AUTHZ-02 | Authorization | AC-13 | Requester lists actions on another Requester's ticket | 404 (no existence leak) | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-AUTHZ-03 | Authorization | Lab 3 BR-03 | Unauthenticated and `mustChangePassword` users on all action endpoints | 401 / 403 | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
-| ACT-AUTHZ-04 | Authorization | Matrix §6.2, AC-17 | Administrator create/update/assign/complete/view actions | Allowed | `server/tests/lab-04/actions-taken.api.test.ts` | Planned |
+| ACT-API-01 | API | AC-01, FR-01, FR-04 | IT Staff creates a valid Action Taken | 201; saved under the correct ticket; `performedBy` = session user | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-02 | API | AC-01, BR-04 | Client-supplied `performedById` ignored | Stored author is the session user | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-03 | API | AC-04, BR-05 | `followUpRequired=true` without note (missing / whitespace) | 400 with field error on `followUpNote` | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-04 | API | BR-05 | `followUpRequired=false` with no note | 201 | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-05 | API | FR-01 | Field validation (empty/oversized description, result, attachmentNotes; future date) | 400 per field rule | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-06 | API | AC-14, FR-16 | Same `Idempotency-Key` sent twice | One record; second call returns the original (200) | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-07 | API | FR-16 | Missing `Idempotency-Key` | 400 | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-08 | API | FR-06, BR-01, BR-02 | Two different IT Staff add actions to a ticket owned by a third | Both saved; list shows both authors; ordering stable | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-09 | API | BR-06, AC-06 | Reassign and Complete/Cancel each with a stale `expectedVersion` | 409 and nothing written | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-10 | API | BR-04, BR-06 | No endpoint accepts `description`, `result`, `followUpRequired`, `followUpNote`, or `attachmentNotes` after creation (reassign/status endpoints reject these fields or ignore them); `performedBy`/`ticketId`/`createdAt` unchanged | Content provably immutable | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-11 | API | AC-10, BR-14 | List on a legacy ticket with no actions | 200 with `items: []` | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-12 | API | AC-12, FR-03 | Requester lists actions on own ticket | 200, full list | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-13 | API | AC-15, BR-15 | Assignee inactive / non-existent / Requester | 400; nothing saved | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-14 | API | AC-16, BR-16 | Complete and cancel a Planned action; invalid status changes (Completed→Planned, Cancelled→Completed) | 200 with `completedAt` set / 400 | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-15 | API | AC-18, BR-18 | Create and edit on a Closed and a Cancelled ticket | 400 INVALID_STATE | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-API-16 | API | BR-06 | No DELETE route anywhere; reassign/status on a Completed/Cancelled record is rejected | 404/405; 400 INVALID_STATE | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-AUTHZ-01 | Authorization | AC-03, BR-03 | Requester POST and PATCH actions | 403 on both | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-AUTHZ-02 | Authorization | AC-13 | Requester lists actions on another Requester's ticket | 404 (no existence leak) | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-AUTHZ-03 | Authorization | Lab 3 BR-03 | Unauthenticated and `mustChangePassword` users on all action endpoints | 401 / 403 | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
+| ACT-AUTHZ-04 | Authorization | Matrix §6.2, AC-17 | Administrator create/update/assign/complete/view actions | Allowed | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
 | ADM-AUTHZ-01 | Authorization | AC-17, FR-19, BR-17 | Administrator uses staff queue/detail, owner/priority/status, comments, notes | 200 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | ADM-AUTHZ-02 | Authorization | AC-17, BR-17 | Administrator on Requester-only endpoints (create ticket, My Tickets, attachment upload/remove, resolve-indicator, requester dashboard) | 403 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
 | WF-API-01 | Workflow | FR-07, BR-08 | Every valid transition in the matrix (all 8 statuses) | 200; `version` +1 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
@@ -61,9 +61,9 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | SDASH-API-05 | API | FR-13 | Empty system / user with nothing assigned | Zeros and empty lists | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | SDASH-API-06 | Authorization | Matrix | Requester / unauthenticated | 403 / 401; Admin allowed | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
 | PERF-01 | Performance-smoke | FR-13 | Both dashboard endpoints on seed data | Respond < 500 ms (smoke threshold, 3-run median) | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| MIG-01 | Migration | AC-11, BR-14 | Row counts and contents of Users, Tickets, Attachments, Comments, Notes identical before/after Lab 4 migration | Identical | `server/tests/lab-04/migration.test.ts` | Planned |
-| MIG-02 | Migration | BR-14 | Existing tickets get `version = 0`; zero actions | As specified | `server/tests/lab-04/migration.test.ts` | Planned |
-| MIG-03 | Migration | §8.2 | Seed is idempotent (run twice) with tickets having 0, 1, many actions and zero/non-zero dashboards | No duplicates/errors | `server/tests/lab-04/migration.test.ts` | Planned |
+| MIG-01 | Migration | AC-11, BR-14 | Row counts and contents of Users, Tickets, Attachments, Comments, Notes identical before/after Lab 4 migration | Identical | `server/tests/lab-04/migration.test.ts` | Pass |
+| MIG-02 | Migration | BR-14 | Existing tickets get `version = 0`; zero actions | As specified | `server/tests/lab-04/migration.test.ts` | Pass |
+| MIG-03 | Migration | §8.2 | Seed is idempotent (run twice) with tickets having 0, 1, many actions and zero/non-zero dashboards | No duplicates/errors | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-04 | Migration | §8.2 | Documented recovery procedure (restore from dump) verified once | Data restored | `docs/lab-04/specification.md` §8.2 + manual evidence | Planned |
 | REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
 | REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
