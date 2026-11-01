@@ -327,6 +327,7 @@ export interface TicketDetail {
   itPriority?: StaffPriority;
   currentStatus: string;
   isRequesterResolved?: boolean;
+  version?: number;
   ownerId?: number | null;
   owner?: { id: number; name: string; email?: string } | null;
   createdAt: string;
@@ -845,8 +846,9 @@ export async function postInternalNote(
 
 export async function updateTicketOwner(
   ticketId: number,
-  ownerId?: number
-): Promise<{ id: number; ticketNumber: string; ownerId: number; owner: { id: number; name: string } | null }> {
+  ownerId?: number,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; ownerId: number; owner: { id: number; name: string } | null; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/owner`, {
@@ -855,7 +857,10 @@ export async function updateTicketOwner(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify(ownerId !== undefined ? { ownerId } : {}),
+      body: JSON.stringify({
+        ...(ownerId !== undefined ? { ownerId } : {}),
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -863,15 +868,19 @@ export async function updateTicketOwner(
 
   if (!res.ok) {
     let errorMsg = `Failed to update ticket owner (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();
@@ -879,8 +888,9 @@ export async function updateTicketOwner(
 
 export async function updateTicketPriority(
   ticketId: number,
-  itPriority: StaffPriority
-): Promise<{ id: number; ticketNumber: string; itPriority: StaffPriority; requestedPriority: string }> {
+  itPriority: StaffPriority,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; itPriority: StaffPriority; requestedPriority: string; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
@@ -889,7 +899,10 @@ export async function updateTicketPriority(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ itPriority }),
+      body: JSON.stringify({
+        itPriority,
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -897,15 +910,19 @@ export async function updateTicketPriority(
 
   if (!res.ok) {
     let errorMsg = `Failed to update priority (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();
@@ -913,8 +930,9 @@ export async function updateTicketPriority(
 
 export async function updateTicketStatus(
   ticketId: number,
-  status: StaffTicketStatus
-): Promise<{ id: number; ticketNumber: string; status: StaffTicketStatus; currentStatus: StaffTicketStatus }> {
+  status: StaffTicketStatus,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; status: StaffTicketStatus; currentStatus: StaffTicketStatus; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
@@ -923,7 +941,10 @@ export async function updateTicketStatus(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({
+        status,
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -931,15 +952,19 @@ export async function updateTicketStatus(
 
   if (!res.ok) {
     let errorMsg = `Failed to update status (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();

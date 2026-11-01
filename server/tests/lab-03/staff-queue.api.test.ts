@@ -119,12 +119,11 @@ describe("Lab 3 - IT Staff Ticket Queue API Integration Tests (QUEUE-API-01, QUE
       expect(res.body.error?.code).toBe("FORBIDDEN");
     });
 
-    it("returns 403 Forbidden when accessed by an Administrator", async () => {
+    it("returns 200 OK when accessed by an Administrator per Decision D-3", async () => {
       const res = await request(app)
         .get("/api/staff/tickets")
         .set("Cookie", `toktickit_session=${adminToken}`);
-      expect(res.status).toBe(403);
-      expect(res.body.error?.code).toBe("FORBIDDEN");
+      expect(res.status).toBe(200);
     });
 
     it("returns 200 OK when accessed by IT Staff", async () => {

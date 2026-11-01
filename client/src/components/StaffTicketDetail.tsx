@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ActionsTaken } from "./ActionsTaken.js";
+import { TicketWorkflow } from "./TicketWorkflow.js";
 import {
   TicketDetail,
   Attachment,
@@ -96,7 +97,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     setOwnerError(null);
 
     try {
-      const res = await updateTicketOwner(ticket.id, currentUser.id);
+      const res = ticket.version !== undefined ? await updateTicketOwner(ticket.id, currentUser.id, ticket.version) : await updateTicketOwner(ticket.id, currentUser.id);
       setTicket((prev) =>
         prev
           ? {
@@ -121,7 +122,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     setOwnerError(null);
 
     try {
-      const res = await updateTicketOwner(ticket.id, targetOwnerId);
+      const res = ticket.version !== undefined ? await updateTicketOwner(ticket.id, targetOwnerId, ticket.version) : await updateTicketOwner(ticket.id, targetOwnerId);
       setTicket((prev) =>
         prev
           ? {
@@ -147,8 +148,8 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
     setPriorityFeedback(null);
 
     try {
-      await updateTicketPriority(ticket.id, newPriority);
-      setTicket((prev) => (prev ? { ...prev, itPriority: newPriority } : null));
+      const res = ticket.version !== undefined ? await updateTicketPriority(ticket.id, newPriority, ticket.version) : await updateTicketPriority(ticket.id, newPriority);
+      setTicket((prev) => (prev ? { ...prev, itPriority: newPriority, ...(res?.version !== undefined ? { version: res.version } : {}) } : null));
       setPriorityFeedback("Priority saved");
       setTimeout(() => setPriorityFeedback(null), 3000);
     } catch (err: unknown) {
@@ -548,13 +549,13 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({
                 data-testid="requester-resolved-badge"
                 style={{ backgroundColor: "#E6F4EA", color: "#137333", border: "1px solid #34A853" }}
               >
-                ✓ Requester Resolved
+                Requester says resolved — please verify
               </span>
             )}
           </div>
 
           {/* Contextual Status Action Buttons */}
-          <div>{renderStatusTransitionButtons()}</div>
+          <div><TicketWorkflow ticket={ticket} onStatusChanged={(updated) => setTicket((prev) => (prev ? { ...prev, currentStatus: updated.status || updated.currentStatus, version: updated.version } : null))} onReloadTicket={fetchDetailAndNotes} /></div>
         </div>
 
         {statusError && (

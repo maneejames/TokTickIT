@@ -175,32 +175,30 @@ describe("Lab 3 - Public Comments & Internal Notes API Integration Tests", () =>
       expect(getRes.body.error.code).toBe("FORBIDDEN");
     });
 
-    it("Administrator is strictly forbidden from posting or reading internal notes (403 Forbidden, AC-33)", async () => {
+    it("Administrator can post and read internal notes per Decision D-3", async () => {
       const postRes = await request(app)
         .post(`/api/tickets/${testTicketId}/notes`)
         .set("Cookie", `toktickit_session=${adminToken}`)
         .send({ content: "Admin posting note" });
-      expect(postRes.status).toBe(403);
-      expect(postRes.body.error.code).toBe("FORBIDDEN");
+      expect(postRes.status).toBe(201);
 
       const getRes = await request(app)
         .get(`/api/tickets/${testTicketId}/notes`)
         .set("Cookie", `toktickit_session=${adminToken}`);
-      expect(getRes.status).toBe(403);
-      expect(getRes.body.error.code).toBe("FORBIDDEN");
+      expect(getRes.status).toBe(200);
     });
 
-    it("Administrator is strictly forbidden from posting or reading public comments (403 Forbidden, AC-33)", async () => {
+    it("Administrator can post and read public comments per Decision D-3", async () => {
       const postRes = await request(app)
         .post(`/api/tickets/${testTicketId}/comments`)
         .set("Cookie", `toktickit_session=${adminToken}`)
         .send({ content: "Admin posting comment" });
-      expect(postRes.status).toBe(403);
+      expect(postRes.status).toBe(201);
 
       const getRes = await request(app)
         .get(`/api/tickets/${testTicketId}/comments`)
         .set("Cookie", `toktickit_session=${adminToken}`);
-      expect(getRes.status).toBe(403);
+      expect(getRes.status).toBe(200);
     });
   });
 

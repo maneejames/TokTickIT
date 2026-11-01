@@ -660,15 +660,32 @@ app.get("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Res
     }
   }
 
-  // status (optional, must be a valid TicketStatus enum value when present, case-insensitive)
-  const VALID_STATUSES = ["NEW"] as const;
-  let statusFilter: string | undefined;
+  // status (optional, single or comma-separated TicketStatus values)
+  const VALID_STATUSES: TicketStatus[] = [
+    "NEW",
+    "OPEN",
+    "IN_PROGRESS",
+    "WAITING_FOR_REQUESTER",
+    "RESOLVED",
+    "CLOSED",
+    "REOPENED",
+    "CANCELLED",
+  ];
+  let statusFilter: TicketStatus[] | undefined;
   if (req.query.status !== undefined && req.query.status !== "") {
-    const normalizedStatus = String(req.query.status).trim().toUpperCase();
-    if (!VALID_STATUSES.includes(normalizedStatus as "NEW")) {
-      validationErrors.push({ field: "status", message: `status must be one of: ${VALID_STATUSES.join(", ")}` });
+    const rawStatuses = String(req.query.status)
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+
+    const invalidStatus = rawStatuses.find((s) => !VALID_STATUSES.includes(s as any));
+    if (invalidStatus || rawStatuses.length === 0) {
+      validationErrors.push({
+        field: "status",
+        message: `status must be one or more of: ${VALID_STATUSES.join(", ")}`,
+      });
     } else {
-      statusFilter = normalizedStatus;
+      statusFilter = rawStatuses as TicketStatus[];
     }
   }
 
@@ -757,7 +774,7 @@ app.get("/api/tickets", ...requireRequesterOnly(), async (req: Request, res: Res
       ],
     }),
     ...(categoryIdFilter !== undefined && { categoryId: categoryIdFilter }),
-    ...(statusFilter !== undefined && { currentStatus: statusFilter as "NEW" }),
+    ...(statusFilter !== undefined && { currentStatus: { in: statusFilter } }),
     ...(priorityFilter !== undefined && { requestedPriority: priorityFilter }),
   };
 
@@ -937,6 +954,7 @@ app.get("/api/tickets/:id", ...requireAuthAndTicketAccess(), async (req: Request
           },
         },
         currentStatus: true,
+        version: true,
         createdAt: true,
         updatedAt: true,
         requester: {
@@ -1374,9 +1392,26 @@ app.patch(
 // POST /api/tickets/:id/comments: Post a public comment
 app.post(
   "/api/tickets/:id/comments",
-  ...requireAuthAndTicketAccess("id"),
+  requireAuth(),
   async (req: Request, res: Response) => {
+    if (req.user!.role !== "REQUESTER" && req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Insufficient permissions",
+        },
+      });
+    }
     const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
+
     const { content } = req.body ?? {};
 
     if (typeof content !== "string" || content.trim().length === 0) {
@@ -1399,6 +1434,19 @@ app.post(
 
     try {
       const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, requesterId: true },
+      });
+
+      if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found",
+          },
+        });
+      }
       const newComment = await prisma.publicComment.create({
         data: {
           ticketId,
@@ -1444,12 +1492,41 @@ app.post(
 // GET /api/tickets/:id/comments: Retrieve public comments
 app.get(
   "/api/tickets/:id/comments",
-  ...requireAuthAndTicketAccess("id"),
+  requireAuth(),
   async (req: Request, res: Response) => {
+    if (req.user!.role !== "REQUESTER" && req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+      return res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Insufficient permissions",
+        },
+      });
+    }
     const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      return res.status(404).json({
+        error: {
+          code: "NOT_FOUND",
+          message: "Ticket not found",
+        },
+      });
+    }
 
     try {
       const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, requesterId: true },
+      });
+
+      if (!ticket || (req.user!.role === "REQUESTER" && ticket.requesterId !== req.user!.id)) {
+        return res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found",
+          },
+        });
+      }
       const comments = await prisma.publicComment.findMany({
         where: { ticketId },
         orderBy: { createdAt: "asc" },
@@ -1491,16 +1568,16 @@ app.get(
   }
 );
 
-// POST /api/tickets/:id/notes: Post an internal note (IT_STAFF only)
+// POST /api/tickets/:id/notes: Post an internal note (IT_STAFF and ADMINISTRATOR per D-3)
 app.post(
   "/api/tickets/:id/notes",
   requireAuth(),
   async (req: Request, res: Response) => {
-    if (req.user!.role !== "IT_STAFF") {
+    if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
       return res.status(403).json({
         error: {
           code: "FORBIDDEN",
-          message: "Internal notes are restricted to IT Staff",
+          message: "Internal notes are restricted to IT Staff and Administrator",
         },
       });
     }
@@ -1591,16 +1668,16 @@ app.post(
   }
 );
 
-// GET /api/tickets/:id/notes: Retrieve internal notes (IT_STAFF only)
+// GET /api/tickets/:id/notes: Retrieve internal notes (IT_STAFF and ADMINISTRATOR per D-3)
 app.get(
   "/api/tickets/:id/notes",
   requireAuth(),
   async (req: Request, res: Response) => {
-    if (req.user!.role !== "IT_STAFF") {
+    if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
       return res.status(403).json({
         error: {
           code: "FORBIDDEN",
-          message: "Internal notes are restricted to IT Staff",
+          message: "Internal notes are restricted to IT Staff and Administrator",
         },
       });
     }
@@ -1816,6 +1893,22 @@ app.get(
       }
     }
 
+    // requesterResolved (optional, true or false)
+    let requesterResolvedFilter: boolean | undefined;
+    if (req.query.requesterResolved !== undefined && req.query.requesterResolved !== "") {
+      const raw = String(req.query.requesterResolved).trim().toLowerCase();
+      if (raw === "true") {
+        requesterResolvedFilter = true;
+      } else if (raw === "false") {
+        requesterResolvedFilter = false;
+      } else {
+        validationErrors.push({
+          field: "requesterResolved",
+          message: "requesterResolved must be 'true' or 'false'",
+        });
+      }
+    }
+
     // pageSize (optional, default 10, must be in [5, 10, 20, 50])
     let pageSize = 10;
     if (req.query.pageSize !== undefined && req.query.pageSize !== "") {
@@ -1861,6 +1954,7 @@ app.get(
         ...(ownerIdFilter !== undefined && {
           ownerId: ownerIdFilter === null ? null : ownerIdFilter,
         }),
+        ...(requesterResolvedFilter !== undefined && { isRequesterResolved: requesterResolvedFilter }),
       };
 
       // Priority sort order custom handling: LOW=1, MEDIUM=2, HIGH=3, URGENT=4
@@ -2117,8 +2211,33 @@ app.patch(
         });
       }
 
+      const { ownerId, expectedVersion } = req.body ?? {};
+      if (expectedVersion === undefined || typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "expectedVersion is required and must be an integer",
+          },
+        });
+      }
+
+      if (ticket.version !== expectedVersion) {
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: ticket.currentStatus,
+            ownerId: ticket.ownerId,
+            itPriority: ticket.itPriority,
+            version: ticket.version,
+          },
+        });
+      }
+
       let targetOwnerId: number;
-      if (req.body.ownerId !== undefined && req.body.ownerId !== null) {
+      if (ownerId !== undefined && ownerId !== null) {
         const parsed = Number(req.body.ownerId);
         if (!Number.isInteger(parsed) || parsed <= 0) {
           return res.status(400).json({
@@ -2166,9 +2285,42 @@ app.patch(
         targetOwnerId = req.user!.id;
       }
 
-      const updatedTicket = await prisma.ticket.update({
+      const updateResult = await prisma.ticket.updateMany({
+        where: { id: ticketId, version: expectedVersion },
+        data: {
+          ownerId: targetOwnerId,
+          version: { increment: 1 },
+        },
+      });
+
+      if (updateResult.count === 0) {
+        const latestTicket = await prisma.ticket.findUnique({
+          where: { id: ticketId },
+        });
+        if (!latestTicket) {
+          return res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found",
+            },
+          });
+        }
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: latestTicket.currentStatus,
+            ownerId: latestTicket.ownerId,
+            itPriority: latestTicket.itPriority,
+            version: latestTicket.version,
+          },
+        });
+      }
+
+      const updatedTicket = await prisma.ticket.findUniqueOrThrow({
         where: { id: ticketId },
-        data: { ownerId: targetOwnerId },
         include: {
           owner: { select: { id: true, name: true, email: true } },
         },
@@ -2183,6 +2335,7 @@ app.patch(
         currentStatus: updatedTicket.currentStatus,
         requestedPriority: updatedTicket.requestedPriority,
         itPriority: updatedTicket.itPriority,
+        version: updatedTicket.version,
         updatedAt: updatedTicket.updatedAt,
       });
     } catch (err: unknown) {
@@ -2227,7 +2380,31 @@ app.patch(
         });
       }
 
-      const { itPriority } = req.body ?? {};
+      const { itPriority, expectedVersion } = req.body ?? {};
+      if (expectedVersion === undefined || typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "expectedVersion is required and must be an integer",
+          },
+        });
+      }
+
+      if (ticket.version !== expectedVersion) {
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: ticket.currentStatus,
+            ownerId: ticket.ownerId,
+            itPriority: ticket.itPriority,
+            version: ticket.version,
+          },
+        });
+      }
+
       const validPriorities: Priority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
       if (!itPriority || !validPriorities.includes(itPriority)) {
@@ -2239,10 +2416,42 @@ app.patch(
         });
       }
 
-      // Update itPriority only; requestedPriority remains unchanged per BR-13/BR-14
-      const updatedTicket = await prisma.ticket.update({
+      const updateResult = await prisma.ticket.updateMany({
+        where: { id: ticketId, version: expectedVersion },
+        data: {
+          itPriority,
+          version: { increment: 1 },
+        },
+      });
+
+      if (updateResult.count === 0) {
+        const latestTicket = await prisma.ticket.findUnique({
+          where: { id: ticketId },
+        });
+        if (!latestTicket) {
+          return res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found",
+            },
+          });
+        }
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: latestTicket.currentStatus,
+            ownerId: latestTicket.ownerId,
+            itPriority: latestTicket.itPriority,
+            version: latestTicket.version,
+          },
+        });
+      }
+
+      const updatedTicket = await prisma.ticket.findUniqueOrThrow({
         where: { id: ticketId },
-        data: { itPriority },
       });
 
       return res.status(200).json({
@@ -2252,6 +2461,7 @@ app.patch(
         itPriority: updatedTicket.itPriority,
         status: updatedTicket.currentStatus,
         currentStatus: updatedTicket.currentStatus,
+        version: updatedTicket.version,
         updatedAt: updatedTicket.updatedAt,
       });
     } catch (err: unknown) {
@@ -2296,7 +2506,31 @@ app.patch(
         });
       }
 
-      const { status: targetStatus } = req.body ?? {};
+      const { status: targetStatus, expectedVersion } = req.body ?? {};
+      if (expectedVersion === undefined || typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
+        return res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "expectedVersion is required and must be an integer",
+          },
+        });
+      }
+
+      if (ticket.version !== expectedVersion) {
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: ticket.currentStatus,
+            ownerId: ticket.ownerId,
+            itPriority: ticket.itPriority,
+            version: ticket.version,
+          },
+        });
+      }
+
       const validStatuses: TicketStatus[] = [
         "NEW",
         "OPEN",
@@ -2327,9 +2561,42 @@ app.patch(
         });
       }
 
-      const updatedTicket = await prisma.ticket.update({
+      const updateResult = await prisma.ticket.updateMany({
+        where: { id: ticketId, version: expectedVersion },
+        data: {
+          currentStatus: targetStatus,
+          version: { increment: 1 },
+        },
+      });
+
+      if (updateResult.count === 0) {
+        const latestTicket = await prisma.ticket.findUnique({
+          where: { id: ticketId },
+        });
+        if (!latestTicket) {
+          return res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found",
+            },
+          });
+        }
+        return res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "This ticket was changed by someone else. Review the latest state and try again.",
+          },
+          current: {
+            status: latestTicket.currentStatus,
+            ownerId: latestTicket.ownerId,
+            itPriority: latestTicket.itPriority,
+            version: latestTicket.version,
+          },
+        });
+      }
+
+      const updatedTicket = await prisma.ticket.findUniqueOrThrow({
         where: { id: ticketId },
-        data: { currentStatus: targetStatus },
       });
 
       return res.status(200).json({
@@ -2337,6 +2604,10 @@ app.patch(
         ticketNumber: updatedTicket.ticketNumber,
         status: updatedTicket.currentStatus,
         currentStatus: updatedTicket.currentStatus,
+        ownerId: updatedTicket.ownerId,
+        itPriority: updatedTicket.itPriority,
+        requestedPriority: updatedTicket.requestedPriority,
+        version: updatedTicket.version,
         updatedAt: updatedTicket.updatedAt,
       });
     } catch (err: unknown) {
@@ -2705,7 +2976,7 @@ function buildRawWhereClause(
   requesterId: number,
   search: string,
   categoryIdFilter: number | undefined,
-  statusFilter: string | undefined,
+  statusFilter: TicketStatus[] | string | undefined,
   priorityFilter: Priority | undefined
 ): { sql: string; params: unknown[] } {
   const conditions: string[] = [];
@@ -2713,23 +2984,31 @@ function buildRawWhereClause(
   let idx = 1;
 
   // Always filter by requesterId
-  conditions.push(`"requesterId" = $${idx++}`);
+  conditions.push(`"requesterId" = ${idx++}`);
   params.push(requesterId);
 
   if (search) {
-    conditions.push(`(summary ILIKE $${idx} OR "ticketNumber" ILIKE $${idx + 1})`);
+    conditions.push(`(summary ILIKE ${idx} OR "ticketNumber" ILIKE ${idx + 1})`);
     params.push(`%${search}%`, `%${search}%`);
     idx += 2;
   }
 
   if (categoryIdFilter !== undefined) {
-    conditions.push(`"categoryId" = $${idx++}`);
+    conditions.push(`"categoryId" = ${idx++}`);
     params.push(categoryIdFilter);
   }
 
   if (statusFilter !== undefined) {
-    conditions.push(`"currentStatus" = $${idx++}::"TicketStatus"`);
-    params.push(statusFilter);
+    if (Array.isArray(statusFilter)) {
+      if (statusFilter.length > 0) {
+        const placeholders = statusFilter.map(() => `${idx++}::"TicketStatus"`).join(", ");
+        conditions.push(`"currentStatus" IN (${placeholders})`);
+        params.push(...statusFilter);
+      }
+    } else {
+      conditions.push(`"currentStatus" = ${idx++}::"TicketStatus"`);
+      params.push(statusFilter);
+    }
   }
 
   if (priorityFilter !== undefined) {
