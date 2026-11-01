@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { ActionsTaken } from "./ActionsTaken.js";
 import {
   TicketDetail,
   Attachment,
@@ -715,6 +716,16 @@ export const RequesterTicketDetail: React.FC<RequesterTicketDetailProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Actions Taken Section (Read-Only for Requester) */}
+      <div className="zen-card p-4 p-md-5 mb-4" data-testid="requester-actions-taken-section">
+        <ActionsTaken
+          ticketId={ticket.id}
+          currentUser={currentRequester}
+          isStaffOrAdmin={false}
+          ticketAttachments={ticket.attachments?.filter((a) => !a.isRemoved)}
+        />
       </div>
 
       {/* Public Comments Section (ui-spec §3.3, AC-19) */}

@@ -1120,3 +1120,221 @@ export async function resetAdminUserPassword(
 
 
 
+
+
+// Lab 4: Actions Taken Contracts
+export type ActionStatus = "PLANNED" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  description: string;
+  performedById: number;
+  performedBy: {
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+  actionDate?: string;
+  actionDateTime?: string;
+  result: string;
+  status: ActionStatus;
+  completedAt: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  assignedToId?: number | null;
+  assigneeId?: number | null;
+  assignedTo?: {
+    id: number;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    role?: string;
+  } | null;
+  assignee?: {
+    id: number;
+    name: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+  } | null;
+  attachmentNotes: string | null;
+  clientRequestId: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenData {
+  description: string;
+  result: string;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  assignedToId?: number | null;
+  assigneeId?: number | null;
+  attachmentNotes?: string | null;
+  actionDate?: string;
+  actionDateTime?: string;
+}
+
+export async function getTicketActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch actions (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function postTicketAction(
+  ticketId: number,
+  data: CreateActionTakenData,
+  idempotencyKey: string
+): Promise<ActionTaken> {
+  let res: Response;
+  const payload = {
+    ...data,
+    assigneeId: data.assigneeId !== undefined ? data.assigneeId : data.assignedToId,
+    assignedToId: data.assignedToId !== undefined ? data.assignedToId : data.assigneeId,
+  };
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to create action (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function reassignTicketAction(
+  ticketId: number,
+  actionId: number,
+  data: { assignedToId?: number | null; assigneeId?: number | null; expectedVersion: number }
+): Promise<ActionTaken> {
+  let res: Response;
+  const payload = {
+    ...data,
+    assigneeId: data.assigneeId !== undefined ? data.assigneeId : data.assignedToId,
+    assignedToId: data.assignedToId !== undefined ? data.assignedToId : data.assigneeId,
+  };
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}/assign`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to reassign action (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function updateTicketActionStatus(
+  ticketId: number,
+  actionId: number,
+  data: { status: "COMPLETED" | "CANCELLED"; expectedVersion: number }
+): Promise<ActionTaken> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update action status (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
