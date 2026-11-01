@@ -13,6 +13,12 @@ import {
 interface StaffTicketQueueProps {
   currentUser: User;
   onOpenTicket?: (ticketId: number) => void;
+  initialFilters?: {
+    status?: string;
+    priority?: string;
+    ownerId?: string | number;
+    requesterResolved?: boolean;
+  };
 }
 
 type StaffSortByField = "createdAt" | "updatedAt" | "itPriority" | "status" | "ticketNumber";
@@ -21,6 +27,7 @@ type SortOrderDirection = "asc" | "desc";
 export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
   currentUser,
   onOpenTicket,
+  initialFilters,
 }) => {
   // Reference data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -37,10 +44,52 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
   // Filter & search states
   const [search, setSearch] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<string>(() => {
+    if (initialFilters?.status) return initialFilters.status;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("status") || "ALL";
+  });
+  const [selectedPriority, setSelectedPriority] = useState<string>(() => {
+    if (initialFilters?.priority) return initialFilters.priority;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("priority") || "ALL";
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [selectedOwnership, setSelectedOwnership] = useState<"all" | "mine" | "unassigned">("all");
+  const [selectedOwnership, setSelectedOwnership] = useState<"all" | "mine" | "unassigned">(() => {
+    const rawOwner =
+      initialFilters?.ownerId !== undefined
+        ? String(initialFilters.ownerId)
+        : new URLSearchParams(window.location.search).get("ownerId");
+    if (rawOwner === "unassigned") return "unassigned";
+    if (rawOwner && Number(rawOwner) === currentUser.id) return "mine";
+    return "all";
+  });
+  const [selectedRequesterResolved, setSelectedRequesterResolved] = useState<boolean | undefined>(() => {
+    if (initialFilters?.requesterResolved !== undefined) return initialFilters.requesterResolved;
+    const raw = new URLSearchParams(window.location.search).get("requesterResolved");
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return undefined;
+  });
+
+  useEffect(() => {
+    if (initialFilters) {
+      setSelectedStatus(initialFilters.status || "ALL");
+      setSelectedPriority(initialFilters.priority || "ALL");
+      if (initialFilters.ownerId === "unassigned") {
+        setSelectedOwnership("unassigned");
+      } else if (
+        initialFilters.ownerId !== undefined &&
+        Number(initialFilters.ownerId) === currentUser.id
+      ) {
+        setSelectedOwnership("mine");
+      } else {
+        setSelectedOwnership("all");
+      }
+      setSelectedRequesterResolved(initialFilters.requesterResolved);
+      setCurrentPage(1);
+    }
+  }, [initialFilters, currentUser.id]);
 
   // Sorting & pagination states
   const [sortBy, setSortBy] = useState<StaffSortByField>("createdAt");
@@ -95,6 +144,9 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
         priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
         categoryId: selectedCategory !== "ALL" ? Number(selectedCategory) : undefined,
         ownerId: ownerIdParam,
+        ...(selectedRequesterResolved !== undefined
+          ? { requesterResolved: selectedRequesterResolved }
+          : {}),
         sortBy,
         sortOrder,
         page: currentPage,
@@ -118,6 +170,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
     selectedPriority,
     selectedCategory,
     selectedOwnership,
+    selectedRequesterResolved,
     sortBy,
     sortOrder,
     currentPage,
@@ -147,6 +200,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
     setSelectedPriority("ALL");
     setSelectedCategory("ALL");
     setSelectedOwnership("all");
+    setSelectedRequesterResolved(undefined);
     setCurrentPage(1);
   };
 
@@ -279,7 +333,8 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
       selectedStatus !== "ALL" ||
       selectedPriority !== "ALL" ||
       selectedCategory !== "ALL" ||
-      selectedOwnership !== "all"
+      selectedOwnership !== "all" ||
+      selectedRequesterResolved !== undefined
   );
 
   // 1. Forbidden state
@@ -446,6 +501,12 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({
               <option value="CLOSED">Closed</option>
               <option value="REOPENED">Reopened</option>
               <option value="CANCELLED">Cancelled</option>
+              <option value="NEW,OPEN,IN_PROGRESS,WAITING_FOR_REQUESTER,REOPENED">
+                Non-Terminal (Active)
+              </option>
+              <option value="OPEN,IN_PROGRESS,WAITING_FOR_REQUESTER,REOPENED">
+                Awaiting Verification (Open/In Progress/Waiting/Reopened)
+              </option>
             </select>
           </div>
 

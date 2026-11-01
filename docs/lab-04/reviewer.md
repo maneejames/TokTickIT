@@ -17,7 +17,7 @@
 | #3 | Implement — Actions Taken Foundation | `feature/lab4-actions-taken-foundation` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
 | #4 | Implement — Actions Taken UI | `feature/lab4-actions-taken-ui` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
 | #5 | Implement — Ticket Workflow & Resolution Gate | `feature/lab4-ticket-workflow` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
+| #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
 | #7 | Final Hardening & Regression | `feature/lab4-final-hardening` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 | #8 | Completion Review — Audit Against Contract | `feature/lab4-completion-review` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 | #9 | Integration, Release & Submission | `release/lab4-staging-to-main` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
@@ -108,6 +108,23 @@
 > *(Pending review)*
 
 **Final verified state:** Pending Review.
+
+---
+
+### Issue #6: Role Dashboards — `feature/lab4-dashboards`
+
+- **PR:** *(Pending PR)*
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Pending Review.
+
+**Yotsapoom commented:**
+> *(Pending review)*
+
+**I responded:**
+> *(Pending review)*
+
+**Final verified state:** *(Pending — fill after merge)*
 
 ---
 

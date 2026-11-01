@@ -714,6 +714,7 @@ export interface QueueFilterParams {
   priority?: string;
   categoryId?: number;
   ownerId?: string | number;
+  requesterResolved?: boolean;
   sortBy?: "createdAt" | "updatedAt" | "itPriority" | "status" | "ticketNumber";
   sortOrder?: "asc" | "desc";
 }
@@ -731,6 +732,9 @@ export async function getStaffTickets(params: QueueFilterParams = {}): Promise<S
   }
   if (params.ownerId !== undefined && params.ownerId !== "ALL" && params.ownerId !== "") {
     query.set("ownerId", String(params.ownerId));
+  }
+  if (params.requesterResolved !== undefined) {
+    query.set("requesterResolved", String(params.requesterResolved));
   }
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.sortOrder) query.set("sortOrder", params.sortOrder);
@@ -1358,6 +1362,174 @@ export async function updateTicketActionStatus(
     const err: any = new Error(errorMsg);
     err.status = res.status;
     err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Lab 4 Issue 6 — Role Dashboards API Types & Functions
+// ---------------------------------------------------------------------------
+
+export interface DashboardMetricWithDrillDown<T = Record<string, string | number | boolean>> {
+  count: number;
+  drillDown: T;
+}
+
+export interface RequesterDashboardTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: StaffTicketStatus | string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardResponse {
+  generatedAt: string;
+  metrics: {
+    activeTickets: DashboardMetricWithDrillDown<{ status: string }>;
+    waitingForRequester: DashboardMetricWithDrillDown<{ status: string }>;
+    resolved: DashboardMetricWithDrillDown<{ status: string }>;
+    closed: DashboardMetricWithDrillDown<{ status: string }>;
+  };
+  recentlyUpdated: RequesterDashboardTicketItem[];
+  recentlyResolved: RequesterDashboardTicketItem[];
+}
+
+export interface StaffDashboardUrgentTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  itPriority: StaffPriority;
+  status: StaffTicketStatus | string;
+  ownerName: string | null;
+  createdAt: string;
+}
+
+export interface StaffDashboardRecentTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: StaffTicketStatus | string;
+  updatedAt: string;
+}
+
+export interface StaffDashboardRecentActionItem {
+  id: number;
+  ticketId: number;
+  ticketNumber: string;
+  descriptionPreview: string;
+  followUpRequired: boolean;
+  actionDateTime: string;
+}
+
+export interface StaffDashboardResponse {
+  generatedAt: string;
+  metrics: {
+    byStatus: Record<
+      StaffTicketStatus,
+      DashboardMetricWithDrillDown<{ status: string }>
+    >;
+    unassigned: DashboardMetricWithDrillDown<{
+      ownerId: string;
+      status: string;
+    }>;
+    myOwned: DashboardMetricWithDrillDown<{
+      ownerId: number;
+      status: string;
+    }>;
+    byItPriority: Record<
+      StaffPriority,
+      DashboardMetricWithDrillDown<{ priority: string; status: string }>
+    >;
+    requesterResolvedPending: DashboardMetricWithDrillDown<{
+      status: string;
+      requesterResolved: boolean;
+    }>;
+    myFollowUps: {
+      count: number;
+    };
+  };
+  urgentTickets: StaffDashboardUrgentTicketItem[];
+  recentlyUpdated: StaffDashboardRecentTicketItem[];
+  myRecentActions: StaffDashboardRecentActionItem[];
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/dashboard/requester`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (res.status === 401) {
+    const err: any = new Error("UNAUTHORIZED");
+    err.status = 401;
+    throw err;
+  }
+
+  if (res.status === 403) {
+    const err: any = new Error("FORBIDDEN");
+    err.status = 403;
+    throw err;
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to load dashboard (HTTP ${res.status})`;
+    try {
+      const errData = await res.json();
+      if (errData?.error?.message) {
+        errorMsg = errData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/dashboard/staff`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (res.status === 401) {
+    const err: any = new Error("UNAUTHORIZED");
+    err.status = 401;
+    throw err;
+  }
+
+  if (res.status === 403) {
+    const err: any = new Error("FORBIDDEN");
+    err.status = 403;
+    throw err;
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to load dashboard (HTTP ${res.status})`;
+    try {
+      const errData = await res.json();
+      if (errData?.error?.message) {
+        errorMsg = errData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
     throw err;
   }
 
