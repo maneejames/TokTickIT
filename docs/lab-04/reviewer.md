@@ -14,12 +14,12 @@
 |---|---|---|---|---|---|---|
 | #1 | AI Specification Agent — Engineering Contract | `feature/lab4-spec-doc` | [PR #67](https://github.com/maneejames/TokTickIT/pull/67) | Approved by @JEWKEW | 2026-10-24T07:05:50Z | Merged |
 | #2 | Review Contract — Ambiguity Resolution | `feature/lab4-spec-review` | [PR #68](https://github.com/maneejames/TokTickIT/pull/68) | Approved by @JEWKEW | 2026-10-29T14:13:52Z | Merged |
-| #3 | Implement — Actions Taken Foundation | `feature/lab4-actions-taken-foundation` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #4 | Implement — Actions Taken UI | `feature/lab4-actions-taken-ui` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #5 | Implement — Ticket Workflow & Resolution Gate | `feature/lab4-ticket-workflow` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #7 | Final Hardening & Regression | `feature/lab4-final-hardening` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
-| #8 | Completion Review — Audit Against Contract | `feature/lab4-completion-review` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
+| #3 | Implement — Actions Taken Foundation | `feature/lab4-actions-taken-foundation` | [PR #69](https://github.com/maneejames/TokTickIT/pull/69) | Approved by @JEWKEW | 2026-10-31T06:23:00Z | Merged |
+| #4 | Implement — Actions Taken UI | `feature/lab4-actions-taken-ui` | [PR #70](https://github.com/maneejames/TokTickIT/pull/70) | Approved by @JEWKEW | 2026-11-01T00:25:29Z | Merged |
+| #5 | Implement — Ticket Workflow & Resolution Gate | `feature/lab4-ticket-workflow` | [PR #71](https://github.com/maneejames/TokTickIT/pull/71) | Approved by @JEWKEW | 2026-11-01T12:03:30Z | Merged |
+| #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | [PR #72](https://github.com/maneejames/TokTickIT/pull/72) | Approved by @JEWKEW | 2026-11-01T14:23:09Z | Merged |
+| #7 | Final Hardening & Regression | `feature/lab4-final-hardening` | [PR #73](https://github.com/maneejames/TokTickIT/pull/73) | Approved by @JEWKEW | 2026-11-01T15:15:29Z | Merged |
+| #8 | Completion Review — Audit Against Contract | `feature/lab4-completion-review` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
 | #9 | Integration, Release & Submission | `release/lab4-staging-to-main` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 
 ---
@@ -62,73 +62,90 @@
 
 ### Issue #3: Actions Taken Foundation — `feature/lab4-actions-taken-foundation`
 
-- **PR:** *(Pending PR)*
+- **PR:** [PR #69](https://github.com/maneejames/TokTickIT/pull/69)
 - **Author:** @maneejames
 - **Reviewer:** @JEWKEW
-- **Review Verdict:** Pending Review.
+- **Review Verdict:** Approved by @JEWKEW (2026-10-31T06:23:00Z); merged (2026-10-31T06:23:00Z).
 
 **Yotsapoom commented:**
-> *(Pending review)*
+> Reviewed the Actions Taken foundation PR. The schema migration, new ActionStatus enum, Ticket version field, idempotent seed, and REST endpoints all match the contract. Concurrency with expectedVersion and idempotency key caching work properly. All 251 server tests pass without regressions. Approved for merge into lab4-staging!
 
 **I responded:**
-> *(Pending review)*
+> Thank you for the review and approval @JEWKEW! Proceeding with the merge and continuing to Issue #4 (Actions Taken UI).
 
-**Final verified state:** Actions Taken Foundation implemented, migration applied, seed updated, and all 251 server tests passing.
+**Final verified state:** PR #69 merged into `lab4-staging` delivering the ActionTaken database model, migration, idempotent seed, and REST API foundation with 251 passing server tests.
 
 ---
 
 ### Issue 4: Actions Taken UI — `feature/lab4-actions-taken-ui`
 
-- **PR:** *(Pending PR)*
+- **PR:** [PR #70](https://github.com/maneejames/TokTickIT/pull/70)
 - **Author:** @maneejames
 - **Reviewer:** @JEWKEW
-- **Review Verdict:** Pending Review.
+- **Review Verdict:** Approved by @JEWKEW (2026-11-01T00:25:29Z); merged (2026-11-01T00:25:29Z).
 
 **Yotsapoom commented:**
-> *(Pending review)*
+> Reviewed the Actions Taken UI implementation. The immutable history list, conditional follow-up requirement, double-submit protection, and read-only view for requesters align accurately with ui-spec §4. All 78 client tests pass and responsive screenshots at desktop, tablet, and mobile look great. Approved for merge into lab4-staging!
 
 **I responded:**
-> *(Pending review)*
+> Thanks for reviewing the UI components! Merging into lab4-staging and moving to Issue #5 (Ticket Workflow & Resolution Gate).
 
-**Final verified state:** Actions Taken UI implemented on IT Staff and Requester Ticket Detail, 7/7 unit/UI tests passing, all 78 client tests passing, TypeScript compile clean, and 12 responsive screenshots captured.
+**Final verified state:** PR #70 merged into `lab4-staging` implementing ActionsTaken component across staff and requester ticket details with full responsive screenshot coverage.
 
 ---
 
 ### Issue #5: Ticket Workflow & Resolution Gate — `feature/lab4-ticket-workflow`
 
-- **PR:** *(Pending PR)*
+- **PR:** [PR #71](https://github.com/maneejames/TokTickIT/pull/71)
 - **Author:** @maneejames
 - **Reviewer:** @JEWKEW
-- **Review Verdict:** Pending Review.
+- **Review Verdict:** Approved by @JEWKEW (2026-11-01T12:03:30Z); merged (2026-11-01T12:03:30Z).
 
 **Yotsapoom commented:**
-> *(Pending review)*
+> Reviewed the workflow and resolution gate PR. The 8-status transition matrix is implemented cleanly, optimistic concurrency handles simultaneous status updates with 409 conflict responses, Decision D-3 Administrator rights work as agreed, and the TicketWorkflow UI provides clear transition buttons and resolution verification notices. All 37 server workflow tests and 13 UI workflow tests pass. Approved for merge!
 
 **I responded:**
-> *(Pending review)*
+> Thanks for the thorough check on concurrency and D-3 behavior! Merging into lab4-staging and moving forward with Issue #6 (Role Dashboards).
 
-**Final verified state:** Pending Review.
+**Final verified state:** PR #71 merged into `lab4-staging` completing the 8-status workflow engine, resolution gate, and optimistic concurrency safeguards.
 
 ---
 
 ### Issue #6: Role Dashboards — `feature/lab4-dashboards`
 
-- **PR:** *(Pending PR)*
+- **PR:** [PR #72](https://github.com/maneejames/TokTickIT/pull/72)
 - **Author:** @maneejames
 - **Reviewer:** @JEWKEW
-- **Review Verdict:** Pending Review.
+- **Review Verdict:** Approved by @JEWKEW (2026-11-01T14:23:09Z); merged (2026-11-01T14:23:09Z).
 
 **Yotsapoom commented:**
-> *(Pending review)*
+> Reviewed the Role Dashboards implementation. Verified the 168-hour rolling window calculations, comma-separated status query filtering, and requester data scoping. Metric cards cross-check with exact database counts across all 40 verified metrics in metric-db-evidence.md. Both dashboards reflow cleanly on tablet and mobile viewports. Approved for merge into lab4-staging!
 
 **I responded:**
-> *(Pending review)*
+> Thank you for verifying the metric counts against the database evidence! Merging into lab4-staging and proceeding to Issue #7 (Final Hardening).
 
-**Final verified state:** *(Pending — fill after merge)*
+**Final verified state:** PR #72 merged into `lab4-staging` establishing requester and staff role dashboards, navigation integration, and 100% verified database metric calculations.
 
 ---
 
 ### Issue #7: Final Hardening & Regression — `feature/lab4-final-hardening`
+
+- **PR:** [PR #73](https://github.com/maneejames/TokTickIT/pull/73)
+- **Author:** @maneejames
+- **Reviewer:** @JEWKEW
+- **Review Verdict:** Approved by @JEWKEW (2026-11-01T15:15:29Z); merged (2026-11-01T15:15:29Z).
+
+**Yotsapoom commented:**
+> Reviewed Issue #7 Final Hardening and Regression PR. TypeScript compilation runs clean across all packages including e2e, the actions concurrency handling with updateMany passes simultaneous Promise.all tests, migration dump recovery is documented with full row count match in mig-04.md, and all 301 server and 104 client tests pass without any regressions. Approved for merge!
+
+**I responded:**
+> Thanks for the review and confirming the clean typechecks and concurrency fixes! Merging PR #73 into lab4-staging and proceeding to Issue #8 (Completion Review).
+
+**Final verified state:** PR #73 merged into `lab4-staging` with full TypeScript compliance, hardened atomic concurrency, migration recovery verification, and zero regression across all test suites.
+
+---
+
+### Issue #8: Completion Review — Audit Against Contract — `feature/lab4-completion-review`
 
 - **PR:** *(Pending PR)*
 - **Author:** @maneejames

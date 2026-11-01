@@ -67,7 +67,7 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | MIG-04 | Migration | §8.2 | Documented recovery procedure (restore from dump) verified once | Data restored | `docs/lab-04/evidence/mig-04.md` | Pass |
 | REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
 | REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
-| REG-03 | Regression | FR-15 | Lab 3 E2E (authentication, staff flow, user administration) | All pass | `e2e/lab-03/` | Planned |
+| REG-03 | Regression | FR-15 | Lab 3 E2E (authentication, staff flow, user administration) | All pass | `e2e/lab-03/` | Pass |
 | ACT-UI-01 | UI | FR-01, FR-03 | List renders columns, multiple actions in stable order; empty state | As ui-spec §4.1 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | ACT-UI-02 | UI | AC-04, BR-05 | Follow-up note appears and becomes required when toggle = Yes; inline error; focus to first invalid field | As ui-spec §4.2 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | ACT-UI-03 | UI | FR-16, AC-14 | Save disables while submitting; double click sends one request; retry reuses key | One request | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
@@ -85,13 +85,13 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | RDASH-UI-01 | UI | FR-11, FR-14 | Cards, recent lists, drill-down, "Needs your attention" text cue | As ui-spec §3 | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
 | RDASH-UI-02 | UI | §3 states | Loading, empty, forbidden, failure + Retry | Each state renders | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
 | NAV-UI-01 | UI | §1 | Role-specific nav links and `aria-current` on active page | Correct per role | `client/tests/lab-04/StaffDashboard.test.tsx` | Pass |
-| STYLE-01 | UI style | Zen Green | Tokens, badges, read-only vs editable field styling, Internal Notes amber on new screens | Matches checklist | `artifacts/lab-04/visual-checklist.md` (reviewed against screenshots) | Planned |
-| RESP-01 | Responsive | ui-spec §7 | Dashboards and Actions Taken at 1280 / 768 / 375 px: no horizontal page scroll, no clipping/overlap | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| A11Y-01 | Accessibility | ui-spec §7 | Keyboard-only pass: focus order, visible focus, card/row activation, labels, `aria-live` | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| A11Y-02 | Accessibility | ui-spec §7 | Automated axe scan on Dashboards, Ticket Detail with Actions Taken | 0 serious/critical violations | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| E2E-01 | E2E | AC-01, AC-04, AC-10 | Staff logs in → opens ticket → adds action (with follow-up) → sees it in list; Requester sees it read-only | Pass | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
-| E2E-02 | E2E | AC-05, AC-06, AC-07 | Requester marks resolved (status unchanged) → Staff verifies and Resolves → Closes; conflict path with two sessions | Pass | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |
-| E2E-03 | E2E | AC-02, AC-08, AC-09 | Dashboards show correct counts; clicking a card lands on the filtered list with equal total | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
+| STYLE-01 | UI style | Zen Green | Tokens, badges, read-only vs editable field styling, Internal Notes amber on new screens | Matches checklist | `artifacts/lab-04/visual-checklist.md` (reviewed against screenshots) | Pass |
+| RESP-01 | Responsive | ui-spec §7 | Dashboards and Actions Taken at 1280 / 768 / 375 px: no horizontal page scroll, no clipping/overlap | Pass | `artifacts/lab-04/visual-checklist.md` | Pass |
+| A11Y-01 | Accessibility | ui-spec §7 | Keyboard-only pass: focus order, visible focus, card/row activation, labels, `aria-live` | Pass | `artifacts/lab-04/visual-checklist.md` | Pass |
+| A11Y-02 | Accessibility | ui-spec §7 | Automated axe scan on Dashboards, Ticket Detail with Actions Taken | 0 serious/critical violations | `artifacts/lab-04/visual-checklist.md` | Pass |
+| E2E-01 | E2E | AC-01, AC-04, AC-10 | Staff logs in → opens ticket → adds action (with follow-up) → sees it in list; Requester sees it read-only | Pass | `e2e/lab-04/actions-taken-flow.spec.ts` | Pass |
+| E2E-02 | E2E | AC-05, AC-06, AC-07 | Requester marks resolved (status unchanged) → Staff verifies and Resolves → Closes; conflict path with two sessions | Pass | `e2e/lab-04/ticket-resolution.spec.ts` | Pass |
+| E2E-03 | E2E | AC-02, AC-08, AC-09 | Dashboards show correct counts; clicking a card lands on the filtered list with equal total | Pass | `e2e/lab-04/dashboards.spec.ts` | Pass |
 | TYPE-01 | Static | Hardening | `tsc --noEmit` clean in server, client, e2e | 0 errors | (command in §1) | Pass |
 
 ## 3. Acceptance Criteria Traceability

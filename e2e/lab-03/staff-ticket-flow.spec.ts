@@ -8,7 +8,8 @@ test.describe('IT Staff Ticket Flow E2E Tests', () => {
     await page.fill('#login-password', 'Password123!');
     await page.click('button[type="submit"]');
 
-    // 2. Verify landing on Staff Ticket Queue
+    // 2. Open Ticket Queue (navigate from Dashboard)
+    await page.getByRole('button', { name: /ticket queue|open queue/i }).first().click();
     await expect(page.locator('body')).toContainText(/IT Support Ticket Queue/i);
 
     // 3. Open first ticket in the queue
@@ -45,4 +46,3 @@ test.describe('IT Staff Ticket Flow E2E Tests', () => {
     }
   });
 });
-
