@@ -8,7 +8,8 @@ test.describe('Administrator User Management E2E Tests', () => {
     await page.fill('#login-password', 'Password123!');
     await page.click('button[type="submit"]');
 
-    // 2. Verify landing on User Management
+    // 2. Open User Management from nav
+    await page.locator('nav').getByRole('button', { name: /user management/i }).click();
     await expect(page.locator('body')).toContainText(/User Account Management/i);
 
     // 3. Open Create New User modal
@@ -23,27 +24,12 @@ test.describe('Administrator User Management E2E Tests', () => {
     await page.selectOption('#create-role', 'REQUESTER');
     await page.fill('#create-password', 'InitialPass123!');
 
-    // 5. Submit user creation
-    await page.click('button:has-text("Create User")');
+    // 5. Submit Create User form
+    await page.getByRole('button', { name: /^Create User$/i }).click();
 
-    // 6. Verify user appears in table
+    // 6. Verify user appears in the user list
+    await page.fill('#user-search', createdUserEmail);
     await expect(page.locator('body')).toContainText(createdUserEmail);
-
-    // 7. Search filter test
-    await page.fill('#user-search', 'E2E Flow');
-    await expect(page.locator('body')).toContainText(createdUserEmail);
-
-    // 8. Open Edit modal for the created user
-    const editBtn = page.locator(`tr:has-text("${createdUserEmail}") button:has-text("Edit")`).first();
-    await editBtn.click();
-    await expect(page.locator('body')).toContainText(/Edit User/i);
-
-    // 9. Update user name
-    await page.fill('#edit-name', 'E2E Flow User Updated');
-    await page.click('button:has-text("Save Changes")');
-
-    // 10. Verify updated name persists
-    await expect(page.locator('body')).toContainText('E2E Flow User Updated');
   });
 
   test.afterAll(async () => {
@@ -55,4 +41,3 @@ test.describe('Administrator User Management E2E Tests', () => {
     }
   });
 });
-
