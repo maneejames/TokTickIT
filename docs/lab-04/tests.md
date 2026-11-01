@@ -39,15 +39,15 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | ACT-AUTHZ-02 | Authorization | AC-13 | Requester lists actions on another Requester's ticket | 404 (no existence leak) | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
 | ACT-AUTHZ-03 | Authorization | Lab 3 BR-03 | Unauthenticated and `mustChangePassword` users on all action endpoints | 401 / 403 | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
 | ACT-AUTHZ-04 | Authorization | Matrix §6.2, AC-17 | Administrator create/update/assign/complete/view actions | Allowed | `server/tests/lab-04/actions-taken.api.test.ts` | Pass |
-| ADM-AUTHZ-01 | Authorization | AC-17, FR-19, BR-17 | Administrator uses staff queue/detail, owner/priority/status, comments, notes | 200 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| ADM-AUTHZ-02 | Authorization | AC-17, BR-17 | Administrator on Requester-only endpoints (create ticket, My Tickets, attachment upload/remove, resolve-indicator, requester dashboard) | 403 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-01 | Workflow | FR-07, BR-08 | Every valid transition in the matrix (all 8 statuses) | 200; `version` +1 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-02 | Workflow | AC-05, BR-08 | Every invalid transition (e.g. New→Resolved, Closed→Open, from Cancelled) | 400; status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-03 | Workflow | FR-08, BR-07 | Requester tries to set Resolved/Closed by direct API | 403 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-04 | Workflow | AC-07, BR-09 | Requester toggles "problem appears resolved" | 200; `status` and `version` unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-05 | Workflow | AC-06, BR-10 | Two writers, second uses stale `expectedVersion` (status, owner, priority) | Second gets 409 with `current` state; first change preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-06 | Workflow | FR-10 | Missing `expectedVersion` | 400 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
-| WF-API-07 | Workflow | Lab 3 BR-12/13/14 | Owner must be active staff/admin; `requestedPriority` never changes | 400 / unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Planned |
+| ADM-AUTHZ-01 | Authorization | AC-17, FR-19, BR-17 | Administrator uses staff queue/detail, owner/priority/status, comments, notes | 200 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| ADM-AUTHZ-02 | Authorization | AC-17, BR-17 | Administrator on Requester-only endpoints (create ticket, My Tickets, attachment upload/remove, resolve-indicator, requester dashboard) | 403 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-01 | Workflow | FR-07, BR-08 | Every valid transition in the matrix (all 8 statuses) | 200; `version` +1 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-02 | Workflow | AC-05, BR-08 | Every invalid transition (e.g. New→Resolved, Closed→Open, from Cancelled) | 400; status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-03 | Workflow | FR-08, BR-07 | Requester tries to set Resolved/Closed by direct API | 403 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-04 | Workflow | AC-07, BR-09 | Requester toggles "problem appears resolved" | 200; `status` and `version` unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-05 | Workflow | AC-06, BR-10 | Two writers, second uses stale `expectedVersion` (status, owner, priority) | Second gets 409 with `current` state; first change preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-06 | Workflow | FR-10 | Missing `expectedVersion` | 400 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-API-07 | Workflow | Lab 3 BR-12/13/14 | Owner must be active staff/admin; `requestedPriority` never changes | 400 / unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | RDASH-API-01 | API | AC-02, FR-11 | Requester dashboard returns only own metrics and lists | Matches seeded counts for that Requester | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | RDASH-API-02 | Authorization | BR-11 | Another Requester's tickets never appear; client `requesterId` ignored | No cross-user data | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
 | RDASH-API-03 | API | FR-13 | Each metric equals a direct DB count (`prisma.ticket.count`) | Equal for every metric | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
@@ -65,8 +65,8 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | MIG-02 | Migration | BR-14 | Existing tickets get `version = 0`; zero actions | As specified | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-03 | Migration | §8.2 | Seed is idempotent (run twice) with tickets having 0, 1, many actions and zero/non-zero dashboards | No duplicates/errors | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-04 | Migration | §8.2 | Documented recovery procedure (restore from dump) verified once | Data restored | `docs/lab-04/specification.md` §8.2 + manual evidence | Planned |
-| REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
-| REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Planned |
+| REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
+| REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
 | REG-03 | Regression | FR-15 | Lab 3 E2E (authentication, staff flow, user administration) | All pass | `e2e/lab-03/` | Planned |
 | ACT-UI-01 | UI | FR-01, FR-03 | List renders columns, multiple actions in stable order; empty state | As ui-spec §4.1 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | ACT-UI-02 | UI | AC-04, BR-05 | Follow-up note appears and becomes required when toggle = Yes; inline error; focus to first invalid field | As ui-spec §4.2 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
@@ -75,10 +75,10 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | ACT-UI-05 | UI | AC-12, BR-03 | Requester view has no Add/Edit controls rendered | Absent from DOM | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | ACT-UI-06 | UI | BR-06 | No Edit control anywhere (content always read-only); 409 on Reassign/Complete/Cancel shows conflict message; Completed/Cancelled rows show no Reassign/Complete/Cancel controls; no Delete control anywhere | As ui-spec §4.3 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | ACT-UI-07 | UI | AC-15, AC-16 | Assignee select lists only active staff/admin; Complete/Cancel buttons on Planned rows with cancel confirmation; status badge has text | As ui-spec §4.3–4.4 | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
-| WF-UI-01 | UI | FR-07, §5 | Buttons shown only for permitted transitions for each of the 8 statuses | Correct sets | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
-| WF-UI-02 | UI | §5 | Success refreshes summary badge/owner/priority and announces via `aria-live` | Refreshed | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
-| WF-UI-03 | UI | AC-05, AC-06 | 400 and 409 responses show the specified messages; bar re-renders from server state | As ui-spec §5 | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
-| WF-UI-04 | UI | AC-07 | Staff see "Requester says resolved — please verify" without status change | Shown | `client/tests/lab-04/TicketWorkflow.test.tsx` | Planned |
+| WF-UI-01 | UI | FR-07, §5 | Buttons shown only for permitted transitions for each of the 8 statuses | Correct sets | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
+| WF-UI-02 | UI | §5 | Success refreshes summary badge/owner/priority and announces via `aria-live` | Refreshed | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
+| WF-UI-03 | UI | AC-05, AC-06 | 400 and 409 responses show the specified messages; bar re-renders from server state | As ui-spec §5 | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
+| WF-UI-04 | UI | AC-07 | Staff see "Requester says resolved — please verify" without status change | Shown | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | SDASH-UI-01 | UI | FR-12, FR-14 | Cards, lists, and drill-down links render from API data; link params match `drillDown` | As ui-spec §2 | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | SDASH-UI-02 | UI | §2 states | Loading, empty (0), forbidden, failure + Retry | Each state renders | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
 | SDASH-UI-03 | UI | §2 | Refresh button busy state; admin extra card | As spec | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
