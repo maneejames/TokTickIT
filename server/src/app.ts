@@ -3482,12 +3482,28 @@ app.patch("/api/tickets/:id/actions/:actionId/assign", requireAuth(), async (req
       targetAssigneeId = parsedId;
     }
 
-    const updated = await (prisma as any).actionTaken.update({
-      where: { id: actionId },
+    const { count } = await (prisma as any).actionTaken.updateMany({
+      where: { id: actionId, version: expectedVersion },
       data: {
         assigneeId: targetAssigneeId,
         version: { increment: 1 },
       },
+    });
+
+    if (count === 0) {
+      const currentAction = await (prisma as any).actionTaken.findUnique({
+        where: { id: actionId },
+      });
+      return res.status(409).json({
+        error: {
+          code: "VERSION_CONFLICT",
+          message: `Action version conflict (expected ${expectedVersion}, current ${currentAction?.version ?? "unknown"})`,
+        },
+      });
+    }
+
+    const updated = await (prisma as any).actionTaken.findUnique({
+      where: { id: actionId },
       include: {
         performedBy: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true } },
@@ -3565,15 +3581,6 @@ app.patch("/api/tickets/:id/actions/:actionId/status", requireAuth(), async (req
       });
     }
 
-    if (action.status !== "PLANNED") {
-      return res.status(400).json({
-        error: {
-          code: "INVALID_STATE",
-          message: "Only PLANNED actions can change status",
-        },
-      });
-    }
-
     const { status, expectedVersion } = req.body ?? {};
     if (typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion)) {
       return res.status(400).json({
@@ -3593,6 +3600,15 @@ app.patch("/api/tickets/:id/actions/:actionId/status", requireAuth(), async (req
       });
     }
 
+    if (action.status !== "PLANNED") {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_STATE",
+          message: "Only PLANNED actions can change status",
+        },
+      });
+    }
+
     if (status !== "COMPLETED" && status !== "CANCELLED") {
       return res.status(400).json({
         error: {
@@ -3602,13 +3618,29 @@ app.patch("/api/tickets/:id/actions/:actionId/status", requireAuth(), async (req
       });
     }
 
-    const updated = await (prisma as any).actionTaken.update({
-      where: { id: actionId },
+    const { count } = await (prisma as any).actionTaken.updateMany({
+      where: { id: actionId, version: expectedVersion },
       data: {
         status,
         completedAt: status === "COMPLETED" ? new Date() : null,
         version: { increment: 1 },
       },
+    });
+
+    if (count === 0) {
+      const currentAction = await (prisma as any).actionTaken.findUnique({
+        where: { id: actionId },
+      });
+      return res.status(409).json({
+        error: {
+          code: "VERSION_CONFLICT",
+          message: `Action version conflict (expected ${expectedVersion}, current ${currentAction?.version ?? "unknown"})`,
+        },
+      });
+    }
+
+    const updated = await (prisma as any).actionTaken.findUnique({
+      where: { id: actionId },
       include: {
         performedBy: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true } },

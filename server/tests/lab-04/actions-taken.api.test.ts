@@ -435,6 +435,47 @@ describe("Lab 4 - Actions Taken Foundation API & Authorization Tests", () => {
         expectedVersion: currentVersion + 99,
       });
     expect(staleStatus.status).toBe(409);
+
+    // Concurrency test: Two simultaneous requests with same expectedVersion must result in exactly [200, 409]
+    // 1. Status concurrency
+    const [cRes1, cRes2] = await Promise.all([
+      request(app)
+        .patch(`/api/tickets/${ticket.id}/actions/${actionId}/status`)
+        .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
+        .send({ status: "COMPLETED", expectedVersion: currentVersion }),
+      request(app)
+        .patch(`/api/tickets/${ticket.id}/actions/${actionId}/status`)
+        .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
+        .send({ status: "CANCELLED", expectedVersion: currentVersion }),
+    ]);
+    const statuses = [cRes1.status, cRes2.status].sort();
+    expect(statuses).toEqual([200, 409]);
+
+    // 2. Assignee concurrency on a new PLANNED action
+    const createRes2 = await request(app)
+      .post(`/api/tickets/${ticket.id}/actions`)
+      .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
+      .set("Idempotency-Key", crypto.randomUUID())
+      .send({
+        description: "Action for assign concurrency check",
+        result: "Initial state",
+      });
+    expect(createRes2.status).toBe(201);
+    const actionId2 = createRes2.body.id;
+    const currentVersion2 = createRes2.body.version;
+
+    const [aRes1, aRes2] = await Promise.all([
+      request(app)
+        .patch(`/api/tickets/${ticket.id}/actions/${actionId2}/assign`)
+        .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
+        .send({ assigneeId: staffKamonId, expectedVersion: currentVersion2 }),
+      request(app)
+        .patch(`/api/tickets/${ticket.id}/actions/${actionId2}/assign`)
+        .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
+        .send({ assigneeId: staffWitchaiId, expectedVersion: currentVersion2 }),
+    ]);
+    const assignStatuses = [aRes1.status, aRes2.status].sort();
+    expect(assignStatuses).toEqual([200, 409]);
   });
 
   // ---------------------------------------------------------------------------

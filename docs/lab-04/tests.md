@@ -64,7 +64,7 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | MIG-01 | Migration | AC-11, BR-14 | Row counts and contents of Users, Tickets, Attachments, Comments, Notes identical before/after Lab 4 migration | Identical | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-02 | Migration | BR-14 | Existing tickets get `version = 0`; zero actions | As specified | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-03 | Migration | §8.2 | Seed is idempotent (run twice) with tickets having 0, 1, many actions and zero/non-zero dashboards | No duplicates/errors | `server/tests/lab-04/migration.test.ts` | Pass |
-| MIG-04 | Migration | §8.2 | Documented recovery procedure (restore from dump) verified once | Data restored | `docs/lab-04/specification.md` §8.2 + manual evidence | Planned |
+| MIG-04 | Migration | §8.2 | Documented recovery procedure (restore from dump) verified once | Data restored | `docs/lab-04/evidence/mig-04.md` | Pass |
 | REG-01 | Regression | AC-11, FR-15 | Entire Lab 1–3 server suite. Any assertion that Administrator gets 403 on a now-IT-Staff-accessible endpoint is updated to match the Lab 4 rule (D-3); nothing else changes | All pass | `server/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
 | REG-02 | Regression | AC-11, FR-15 | Entire Lab 1–3 client suite | All pass | `client/tests/lab-01/`, `lab-02/`, `lab-03/` | Pass |
 | REG-03 | Regression | FR-15 | Lab 3 E2E (authentication, staff flow, user administration) | All pass | `e2e/lab-03/` | Planned |
@@ -92,7 +92,7 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | E2E-01 | E2E | AC-01, AC-04, AC-10 | Staff logs in → opens ticket → adds action (with follow-up) → sees it in list; Requester sees it read-only | Pass | `e2e/lab-04/actions-taken-flow.spec.ts` | Planned |
 | E2E-02 | E2E | AC-05, AC-06, AC-07 | Requester marks resolved (status unchanged) → Staff verifies and Resolves → Closes; conflict path with two sessions | Pass | `e2e/lab-04/ticket-resolution.spec.ts` | Planned |
 | E2E-03 | E2E | AC-02, AC-08, AC-09 | Dashboards show correct counts; clicking a card lands on the filtered list with equal total | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
-| TYPE-01 | Static | Hardening | `tsc --noEmit` clean in server, client, e2e | 0 errors | (command in §1) | Planned |
+| TYPE-01 | Static | Hardening | `tsc --noEmit` clean in server, client, e2e | 0 errors | (command in §1) | Pass |
 
 ## 3. Acceptance Criteria Traceability
 

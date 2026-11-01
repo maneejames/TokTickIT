@@ -24,3 +24,7 @@ artifacts/lab-04/logs/
 # testing & reports
 test-results/
 playwright-report/
+
+.vite/
+
+.vite/
