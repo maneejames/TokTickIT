@@ -2004,6 +2004,11 @@ app.get(
           }
         }
 
+        if (requesterResolvedFilter !== undefined) {
+          whereConditions.push(`"tickets"."isRequesterResolved" = $${pIdx++}`);
+          rawParams.push(requesterResolvedFilter);
+        }
+
         const whereSql = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
         const idRows = await prisma.$queryRawUnsafe<{ id: number }[]>(
@@ -3617,6 +3622,372 @@ app.patch("/api/tickets/:id/actions/:actionId/status", requireAuth(), async (req
       error: {
         code: "INTERNAL_ERROR",
         message: "Failed to update action status",
+      },
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Lab 4 Issue 6 — Role Dashboards: GET /api/dashboard/requester & GET /api/dashboard/staff
+// ---------------------------------------------------------------------------
+
+const DASHBOARD_NON_TERMINAL_STATUSES: TicketStatus[] = [
+  "NEW",
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "REOPENED",
+];
+
+const DASHBOARD_NON_TERMINAL_CSV = "NEW,OPEN,IN_PROGRESS,WAITING_FOR_REQUESTER,REOPENED";
+const DASHBOARD_REQ_RESOLVED_STATUSES: TicketStatus[] = [
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "REOPENED",
+];
+const DASHBOARD_REQ_RESOLVED_CSV = "OPEN,IN_PROGRESS,WAITING_FOR_REQUESTER,REOPENED";
+
+const DASHBOARD_ALL_STATUSES: TicketStatus[] = [
+  "NEW",
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "RESOLVED",
+  "CLOSED",
+  "REOPENED",
+  "CANCELLED",
+];
+
+const DASHBOARD_ALL_PRIORITIES: Priority[] = ["URGENT", "HIGH", "MEDIUM", "LOW"];
+
+// 4.1 Requester Dashboard — GET /api/dashboard/requester
+app.get("/api/dashboard/requester", ...requireRequesterOnly(), async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const requesterId = req.user!.id; // Strictly scoped to session user (BR-11)
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      activeCount,
+      waitingCount,
+      resolvedCount,
+      closedCount,
+      recentlyUpdatedRows,
+      recentlyResolvedRows,
+    ] = await Promise.all([
+      prisma.ticket.count({
+        where: {
+          requesterId,
+          currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          requesterId,
+          currentStatus: "WAITING_FOR_REQUESTER",
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          requesterId,
+          currentStatus: "RESOLVED",
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          requesterId,
+          currentStatus: "CLOSED",
+        },
+      }),
+      prisma.ticket.findMany({
+        where: {
+          requesterId,
+          updatedAt: { gte: sevenDaysAgo },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.ticket.findMany({
+        where: {
+          requesterId,
+          currentStatus: "RESOLVED",
+          updatedAt: { gte: sevenDaysAgo },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      generatedAt: now.toISOString(),
+      metrics: {
+        activeTickets: {
+          count: activeCount,
+          drillDown: { status: DASHBOARD_NON_TERMINAL_CSV },
+        },
+        waitingForRequester: {
+          count: waitingCount,
+          drillDown: { status: "WAITING_FOR_REQUESTER" },
+        },
+        resolved: {
+          count: resolvedCount,
+          drillDown: { status: "RESOLVED" },
+        },
+        closed: {
+          count: closedCount,
+          drillDown: { status: "CLOSED" },
+        },
+      },
+      recentlyUpdated: recentlyUpdatedRows.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        status: t.currentStatus,
+        updatedAt: t.updatedAt.toISOString(),
+      })),
+      recentlyResolved: recentlyResolvedRows.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        status: t.currentStatus,
+        updatedAt: t.updatedAt.toISOString(),
+      })),
+    });
+  } catch (err: unknown) {
+    console.error("GET /api/dashboard/requester error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to load requester dashboard",
+      },
+    });
+  }
+});
+
+// 4.2 IT Staff Dashboard — GET /api/dashboard/staff
+app.get("/api/dashboard/staff", requireAuth(), async (req: Request, res: Response) => {
+  if (req.user!.role !== "IT_STAFF" && req.user!.role !== "ADMINISTRATOR") {
+    return res.status(403).json({
+      error: {
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      },
+    });
+  }
+
+  try {
+    const prisma = getPrisma();
+    const sessionUserId = req.user!.id; // Strictly scoped to session user (BR-12)
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      statusGroupCounts,
+      unassignedCount,
+      myOwnedCount,
+      priorityGroupCounts,
+      requesterResolvedPendingCount,
+      myFollowUpsCount,
+      urgentTicketRows,
+      recentlyUpdatedRows,
+      myRecentActionRows,
+    ] = await Promise.all([
+      prisma.ticket.groupBy({
+        by: ["currentStatus"],
+        _count: { _all: true },
+      }),
+      prisma.ticket.count({
+        where: {
+          ownerId: null,
+          currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          ownerId: sessionUserId,
+          currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+        },
+      }),
+      prisma.ticket.groupBy({
+        by: ["itPriority"],
+        where: {
+          currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+        },
+        _count: { _all: true },
+      }),
+      prisma.ticket.count({
+        where: {
+          isRequesterResolved: true,
+          currentStatus: { in: DASHBOARD_REQ_RESOLVED_STATUSES },
+        },
+      }),
+      (prisma as any).actionTaken.count({
+        where: {
+          performedById: sessionUserId,
+          followUpRequired: true,
+          ticket: {
+            currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+          },
+        },
+      }),
+      prisma.ticket.findMany({
+        where: {
+          itPriority: "URGENT",
+          currentStatus: { in: DASHBOARD_NON_TERMINAL_STATUSES },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          itPriority: true,
+          currentStatus: true,
+          owner: { select: { name: true } },
+          createdAt: true,
+        },
+      }),
+      prisma.ticket.findMany({
+        where: {
+          updatedAt: { gte: sevenDaysAgo },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          currentStatus: true,
+          updatedAt: true,
+        },
+      }),
+      (prisma as any).actionTaken.findMany({
+        where: {
+          performedById: sessionUserId,
+        },
+        orderBy: [{ actionDateTime: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          ticketId: true,
+          description: true,
+          followUpRequired: true,
+          actionDateTime: true,
+          ticket: { select: { ticketNumber: true } },
+        },
+      }),
+    ]);
+
+    const statusCountMap = new Map<TicketStatus, number>();
+    for (const row of statusGroupCounts) {
+      statusCountMap.set(row.currentStatus, row._count._all);
+    }
+
+    const byStatus: Record<string, { count: number; drillDown: { status: string } }> = {};
+    for (const st of DASHBOARD_ALL_STATUSES) {
+      byStatus[st] = {
+        count: statusCountMap.get(st) ?? 0,
+        drillDown: { status: st },
+      };
+    }
+
+    const priorityCountMap = new Map<Priority, number>();
+    for (const row of priorityGroupCounts) {
+      priorityCountMap.set(row.itPriority, row._count._all);
+    }
+
+    const byItPriority: Record<
+      string,
+      { count: number; drillDown: { priority: string; status: string } }
+    > = {};
+    for (const prio of DASHBOARD_ALL_PRIORITIES) {
+      byItPriority[prio] = {
+        count: priorityCountMap.get(prio) ?? 0,
+        drillDown: {
+          priority: prio,
+          status: DASHBOARD_NON_TERMINAL_CSV,
+        },
+      };
+    }
+
+    return res.status(200).json({
+      generatedAt: now.toISOString(),
+      metrics: {
+        byStatus,
+        unassigned: {
+          count: unassignedCount,
+          drillDown: {
+            ownerId: "unassigned",
+            status: DASHBOARD_NON_TERMINAL_CSV,
+          },
+        },
+        myOwned: {
+          count: myOwnedCount,
+          drillDown: {
+            ownerId: sessionUserId,
+            status: DASHBOARD_NON_TERMINAL_CSV,
+          },
+        },
+        byItPriority,
+        requesterResolvedPending: {
+          count: requesterResolvedPendingCount,
+          drillDown: {
+            status: DASHBOARD_REQ_RESOLVED_CSV,
+            requesterResolved: true,
+          },
+        },
+        myFollowUps: {
+          count: myFollowUpsCount,
+        },
+      },
+      urgentTickets: urgentTicketRows.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        itPriority: t.itPriority,
+        status: t.currentStatus,
+        ownerName: t.owner?.name ?? null,
+        createdAt: t.createdAt.toISOString(),
+      })),
+      recentlyUpdated: recentlyUpdatedRows.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        summary: t.summary,
+        status: t.currentStatus,
+        updatedAt: t.updatedAt.toISOString(),
+      })),
+      myRecentActions: myRecentActionRows.map((a: any) => ({
+        id: a.id,
+        ticketId: a.ticketId,
+        ticketNumber: a.ticket?.ticketNumber ?? "",
+        descriptionPreview:
+          a.description.length > 80 ? `${a.description.slice(0, 80)}…` : a.description,
+        followUpRequired: a.followUpRequired,
+        actionDateTime: new Date(a.actionDateTime).toISOString(),
+      })),
+    });
+  } catch (err: unknown) {
+    console.error("GET /api/dashboard/staff error:", err);
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Failed to load staff dashboard",
       },
     });
   }

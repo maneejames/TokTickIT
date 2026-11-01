@@ -1,15 +1,22 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext.js";
 
+export type AppNavKey =
+  | "dashboard"
+  | "my-tickets"
+  | "create-ticket"
+  | "staff-queue"
+  | "admin-users";
+
 interface AppShellProps {
   children?: React.ReactNode;
-  activeNav?: "my-tickets" | "create-ticket" | "staff-queue" | "admin-users";
-  onNavSelect?: (nav: any) => void;
+  activeNav?: AppNavKey;
+  onNavSelect?: (nav: AppNavKey) => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
   children,
-  activeNav = "my-tickets",
+  activeNav = "dashboard",
   onNavSelect,
 }) => {
   const { user, logout } = useAuth();
@@ -26,18 +33,78 @@ export const AppShell: React.FC<AppShellProps> = ({
     }
   };
 
+  const renderNavLink = (key: AppNavKey, label: string) => {
+    const isActive = activeNav === key;
+    return (
+      <span
+        key={key}
+        role="button"
+        tabIndex={0}
+        aria-current={isActive ? "page" : undefined}
+        onClick={() => onNavSelect?.(key)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onNavSelect?.(key);
+          }
+        }}
+        style={{
+          color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.82)",
+          fontWeight: isActive ? 700 : 500,
+          fontSize: "14px",
+          cursor: "pointer",
+          borderBottom: isActive ? "3px solid #FFFFFF" : "3px solid transparent",
+          paddingBottom: "4px",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+    );
+  };
+
+  const getRoleNavItems = (): Array<{ key: AppNavKey; label: string }> => {
+    if (!user) return [];
+    if (user.role === "REQUESTER") {
+      return [
+        { key: "dashboard", label: "Dashboard" },
+        { key: "my-tickets", label: "My Tickets" },
+        { key: "create-ticket", label: "Create Ticket" },
+      ];
+    }
+    if (user.role === "IT_STAFF") {
+      return [
+        { key: "dashboard", label: "Dashboard" },
+        { key: "staff-queue", label: "Ticket Queue" },
+      ];
+    }
+    if (user.role === "ADMINISTRATOR") {
+      return [
+        { key: "dashboard", label: "Dashboard" },
+        { key: "staff-queue", label: "Ticket Queue" },
+        { key: "admin-users", label: "User Management" },
+      ];
+    }
+    return [];
+  };
+
+  const navItems = getRoleNavItems();
+
   return (
-    <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: "var(--color-page-bg)" }}>
+    <div
+      className="d-flex flex-column min-vh-100"
+      style={{ backgroundColor: "var(--color-page-bg)", overflowX: "hidden" }}
+    >
       {/* Top Navigation Bar */}
       <header
-        className="d-flex align-items-center justify-content-between px-4"
+        className="d-flex flex-wrap align-items-center justify-content-between px-3 px-md-4 py-2"
         style={{
           backgroundColor: "var(--color-primary-green)",
-          height: "60px",
+          minHeight: "60px",
           color: "#FFFFFF",
         }}
       >
-        <div className="d-flex align-items-center gap-4">
+        <div className="d-flex align-items-center gap-3 gap-md-4 flex-wrap">
           <div className="d-flex align-items-center gap-2">
             <h1
               style={{
@@ -50,9 +117,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               }}
               onClick={() => {
                 if (!user?.mustChangePassword) {
-                  if (user?.role === "REQUESTER") onNavSelect?.("my-tickets");
-                  else if (user?.role === "IT_STAFF") onNavSelect?.("staff-queue");
-                  else if (user?.role === "ADMINISTRATOR") onNavSelect?.("admin-users");
+                  onNavSelect?.("dashboard");
                 }
               }}
             >
@@ -60,99 +125,21 @@ export const AppShell: React.FC<AppShellProps> = ({
             </h1>
           </div>
 
-          {/* Navigation Links per ui-spec.md §2.1 (hidden if mustChangePassword) */}
+          {/* Navigation Links per ui-spec.md §1 (hidden if mustChangePassword) */}
           {user && !user.mustChangePassword && (
-            <nav className="d-none d-md-flex align-items-center gap-3 ms-3">
-              {user.role === "REQUESTER" && (
-                <>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onNavSelect?.("my-tickets")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") onNavSelect?.("my-tickets");
-                    }}
-                    style={{
-                      color: activeNav === "my-tickets" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                      fontWeight: activeNav === "my-tickets" ? 600 : 500,
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      borderBottom: activeNav === "my-tickets" ? "3px solid #FFFFFF" : "none",
-                      paddingBottom: "4px",
-                    }}
-                  >
-                    My Tickets
-                  </span>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onNavSelect?.("create-ticket")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") onNavSelect?.("create-ticket");
-                    }}
-                    style={{
-                      color: activeNav === "create-ticket" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                      fontWeight: activeNav === "create-ticket" ? 600 : 500,
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      borderBottom: activeNav === "create-ticket" ? "3px solid #FFFFFF" : "none",
-                      paddingBottom: "4px",
-                    }}
-                  >
-                    Create Ticket
-                  </span>
-                </>
-              )}
-
-              {user.role === "IT_STAFF" && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onNavSelect?.("staff-queue")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") onNavSelect?.("staff-queue");
-                  }}
-                  style={{
-                    color: activeNav === "staff-queue" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                    fontWeight: activeNav === "staff-queue" ? 600 : 500,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    borderBottom: activeNav === "staff-queue" ? "3px solid #FFFFFF" : "none",
-                    paddingBottom: "4px",
-                  }}
-                >
-                  Ticket Queue
-                </span>
-              )}
-
-              {user.role === "ADMINISTRATOR" && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onNavSelect?.("admin-users")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") onNavSelect?.("admin-users");
-                  }}
-                  style={{
-                    color: activeNav === "admin-users" ? "#FFFFFF" : "rgba(255, 255, 255, 0.8)",
-                    fontWeight: activeNav === "admin-users" ? 600 : 500,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    borderBottom: activeNav === "admin-users" ? "3px solid #FFFFFF" : "none",
-                    paddingBottom: "4px",
-                  }}
-                >
-                  User Management
-                </span>
-              )}
+            <nav
+              aria-label="Primary navigation"
+              className="d-flex align-items-center gap-3 ms-1 ms-md-3 flex-wrap"
+            >
+              {navItems.map((item) => renderNavLink(item.key, item.label))}
             </nav>
           )}
         </div>
 
-        {/* Right: Authenticated User Profile & Logout Widget per ui-spec.md §2.1 */}
-        <div className="d-flex align-items-center">
+        {/* Right: Authenticated User Profile & Logout Widget */}
+        <div className="d-flex align-items-center ms-auto">
           {user ? (
-            <div className="d-flex align-items-center gap-3">
+            <div className="d-flex align-items-center gap-2 gap-md-3">
               <div
                 className="d-none d-sm-flex align-items-center px-3 py-1 rounded-pill"
                 style={{
@@ -163,7 +150,9 @@ export const AppShell: React.FC<AppShellProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                <span className="me-1" aria-hidden="true">👤</span>
+                <span className="me-1" aria-hidden="true">
+                  👤
+                </span>
                 <span>
                   {user.name} ({getRoleBadge(user.role)})
                 </span>
@@ -189,9 +178,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-grow-1">
-        {children}
-      </main>
+      <main className="flex-grow-1">{children}</main>
     </div>
   );
 };

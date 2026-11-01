@@ -12,6 +12,7 @@ interface MyTicketsProps {
   currentRequester: User;
   onNavigateToCreateTicket?: () => void;
   onNavigateToTicketDetail?: (ticketId: number) => void;
+  initialStatusFilter?: string;
 }
 
 type SortByField = "createdAt" | "requestedPriority" | "status" | "summary";
@@ -21,6 +22,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
   currentRequester,
   onNavigateToCreateTicket,
   onNavigateToTicketDetail,
+  initialStatusFilter,
 }) => {
   // Reference data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -39,7 +41,18 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>(() => {
+    if (initialStatusFilter) return initialStatusFilter;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("status") || "";
+  });
+
+  useEffect(() => {
+    if (initialStatusFilter !== undefined) {
+      setSelectedStatus(initialStatusFilter);
+      setCurrentPage(1);
+    }
+  }, [initialStatusFilter]);
   const [sortBy, setSortBy] = useState<SortByField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrderDirection>("desc");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -381,6 +394,14 @@ export const MyTickets: React.FC<MyTicketsProps> = ({
             >
               <option value="">All Statuses</option>
               <option value="NEW">New</option>
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="WAITING_FOR_REQUESTER">Waiting for Requester</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
+              <option value="REOPENED">Reopened</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="NEW,OPEN,IN_PROGRESS,WAITING_FOR_REQUESTER,REOPENED">Active Tickets</option>
             </select>
           </div>
 

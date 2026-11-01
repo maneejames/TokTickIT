@@ -48,19 +48,19 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | WF-API-05 | Workflow | AC-06, BR-10 | Two writers, second uses stale `expectedVersion` (status, owner, priority) | Second gets 409 with `current` state; first change preserved | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | WF-API-06 | Workflow | FR-10 | Missing `expectedVersion` | 400 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | WF-API-07 | Workflow | Lab 3 BR-12/13/14 | Owner must be active staff/admin; `requestedPriority` never changes | 400 / unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
-| RDASH-API-01 | API | AC-02, FR-11 | Requester dashboard returns only own metrics and lists | Matches seeded counts for that Requester | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| RDASH-API-02 | Authorization | BR-11 | Another Requester's tickets never appear; client `requesterId` ignored | No cross-user data | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| RDASH-API-03 | API | FR-13 | Each metric equals a direct DB count (`prisma.ticket.count`) | Equal for every metric | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| RDASH-API-04 | API | AC-09 | `GET /api/tickets?<drillDown>` total equals card count (incl. comma-separated `status`) | Equal | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| RDASH-API-05 | API | FR-13 | Requester with zero tickets | All counts 0, empty lists, 200 | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| RDASH-API-06 | Authorization | Matrix | IT Staff / Admin / unauthenticated | 403 / 403 / 401 | `server/tests/lab-04/requester-dashboard.api.test.ts` | Planned |
-| SDASH-API-01 | API | AC-08, FR-12 | Staff dashboard metrics (byStatus incl. all 8 keys, unassigned, myOwned, byItPriority, requesterResolvedPending, myFollowUps) | Match seed | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| SDASH-API-02 | API | BR-12 | `myOwned` uses session user, not client input | Correct per user | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| SDASH-API-03 | API | FR-13, AC-08 | Each metric equals a direct DB count | Equal for every metric | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| SDASH-API-04 | API | AC-09 | `GET /api/staff/tickets?<drillDown>` total equals card count (incl. `requesterResolved` filter) | Equal | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| SDASH-API-05 | API | FR-13 | Empty system / user with nothing assigned | Zeros and empty lists | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| SDASH-API-06 | Authorization | Matrix | Requester / unauthenticated | 403 / 401; Admin allowed | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
-| PERF-01 | Performance-smoke | FR-13 | Both dashboard endpoints on seed data | Respond < 500 ms (smoke threshold, 3-run median) | `server/tests/lab-04/staff-dashboard.api.test.ts` | Planned |
+| RDASH-API-01 | API | AC-02, FR-11 | Requester dashboard returns only own metrics and lists | Matches seeded counts for that Requester | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| RDASH-API-02 | Authorization | BR-11 | Another Requester's tickets never appear; client `requesterId` ignored | No cross-user data | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| RDASH-API-03 | API | FR-13 | Each metric equals a direct DB count (`prisma.ticket.count`) | Equal for every metric | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| RDASH-API-04 | API | AC-09 | `GET /api/tickets?<drillDown>` total equals card count (incl. comma-separated `status`) | Equal | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| RDASH-API-05 | API | FR-13 | Requester with zero tickets | All counts 0, empty lists, 200 | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| RDASH-API-06 | Authorization | Matrix | IT Staff / Admin / unauthenticated | 403 / 403 / 401 | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| SDASH-API-01 | API | AC-08, FR-12 | Staff dashboard metrics (byStatus incl. all 8 keys, unassigned, myOwned, byItPriority, requesterResolvedPending, myFollowUps) | Match seed | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| SDASH-API-02 | API | BR-12 | `myOwned` uses session user, not client input | Correct per user | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| SDASH-API-03 | API | FR-13, AC-08 | Each metric equals a direct DB count | Equal for every metric | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| SDASH-API-04 | API | AC-09 | `GET /api/staff/tickets?<drillDown>` total equals card count (incl. `requesterResolved` filter) | Equal | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| SDASH-API-05 | API | FR-13 | Empty system / user with nothing assigned | Zeros and empty lists | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| SDASH-API-06 | Authorization | Matrix | Requester / unauthenticated | 403 / 401; Admin allowed | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| PERF-01 | Performance-smoke | FR-13 | Both dashboard endpoints on seed data | Respond < 500 ms (smoke threshold, 3-run median) | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
 | MIG-01 | Migration | AC-11, BR-14 | Row counts and contents of Users, Tickets, Attachments, Comments, Notes identical before/after Lab 4 migration | Identical | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-02 | Migration | BR-14 | Existing tickets get `version = 0`; zero actions | As specified | `server/tests/lab-04/migration.test.ts` | Pass |
 | MIG-03 | Migration | §8.2 | Seed is idempotent (run twice) with tickets having 0, 1, many actions and zero/non-zero dashboards | No duplicates/errors | `server/tests/lab-04/migration.test.ts` | Pass |
@@ -79,12 +79,12 @@ Planned **before** implementation. The **Final** column stays `Planned` until a 
 | WF-UI-02 | UI | §5 | Success refreshes summary badge/owner/priority and announces via `aria-live` | Refreshed | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | WF-UI-03 | UI | AC-05, AC-06 | 400 and 409 responses show the specified messages; bar re-renders from server state | As ui-spec §5 | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | WF-UI-04 | UI | AC-07 | Staff see "Requester says resolved — please verify" without status change | Shown | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
-| SDASH-UI-01 | UI | FR-12, FR-14 | Cards, lists, and drill-down links render from API data; link params match `drillDown` | As ui-spec §2 | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
-| SDASH-UI-02 | UI | §2 states | Loading, empty (0), forbidden, failure + Retry | Each state renders | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
-| SDASH-UI-03 | UI | §2 | Refresh button busy state; admin extra card | As spec | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
-| RDASH-UI-01 | UI | FR-11, FR-14 | Cards, recent lists, drill-down, "Needs your attention" text cue | As ui-spec §3 | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| RDASH-UI-02 | UI | §3 states | Loading, empty, forbidden, failure + Retry | Each state renders | `client/tests/lab-04/RequesterDashboard.test.tsx` | Planned |
-| NAV-UI-01 | UI | §1 | Role-specific nav links and `aria-current` on active page | Correct per role | `client/tests/lab-04/StaffDashboard.test.tsx` | Planned |
+| SDASH-UI-01 | UI | FR-12, FR-14 | Cards, lists, and drill-down links render from API data; link params match `drillDown` | As ui-spec §2 | `client/tests/lab-04/StaffDashboard.test.tsx` | Pass |
+| SDASH-UI-02 | UI | §2 states | Loading, empty (0), forbidden, failure + Retry | Each state renders | `client/tests/lab-04/StaffDashboard.test.tsx` | Pass |
+| SDASH-UI-03 | UI | §2 | Refresh button busy state; admin extra card | As spec | `client/tests/lab-04/StaffDashboard.test.tsx` | Pass |
+| RDASH-UI-01 | UI | FR-11, FR-14 | Cards, recent lists, drill-down, "Needs your attention" text cue | As ui-spec §3 | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
+| RDASH-UI-02 | UI | §3 states | Loading, empty, forbidden, failure + Retry | Each state renders | `client/tests/lab-04/RequesterDashboard.test.tsx` | Pass |
+| NAV-UI-01 | UI | §1 | Role-specific nav links and `aria-current` on active page | Correct per role | `client/tests/lab-04/StaffDashboard.test.tsx` | Pass |
 | STYLE-01 | UI style | Zen Green | Tokens, badges, read-only vs editable field styling, Internal Notes amber on new screens | Matches checklist | `artifacts/lab-04/visual-checklist.md` (reviewed against screenshots) | Planned |
 | RESP-01 | Responsive | ui-spec §7 | Dashboards and Actions Taken at 1280 / 768 / 375 px: no horizontal page scroll, no clipping/overlap | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
 | A11Y-01 | Accessibility | ui-spec §7 | Keyboard-only pass: focus order, visible focus, card/row activation, labels, `aria-live` | Pass | `e2e/lab-04/dashboards.spec.ts` | Planned |
