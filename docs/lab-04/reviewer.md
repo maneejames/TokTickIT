@@ -19,7 +19,7 @@
 | #5 | Implement — Ticket Workflow & Resolution Gate | `feature/lab4-ticket-workflow` | [PR #71](https://github.com/maneejames/TokTickIT/pull/71) | Approved by @JEWKEW | 2026-11-01T12:03:30Z | Merged |
 | #6 | Implement — Role Dashboards | `feature/lab4-dashboards` | [PR #72](https://github.com/maneejames/TokTickIT/pull/72) | Approved by @JEWKEW | 2026-11-01T14:23:09Z | Merged |
 | #7 | Final Hardening & Regression | `feature/lab4-final-hardening` | [PR #73](https://github.com/maneejames/TokTickIT/pull/73) | Approved by @JEWKEW | 2026-11-01T15:15:29Z | Merged |
-| #8 | Completion Review — Audit Against Contract | `feature/lab4-completion-review` | *(Pending PR)* | Pending Review | *(Pending)* | In Progress |
+| #8 | Completion Review — Audit Against Contract | `feature/lab4-completion-review` | [PR #75](https://github.com/maneejames/TokTickIT/pull/75) | Approved by @JEWKEW | 2026-11-01T16:09:34Z | Merged |
 | #9 | Integration, Release & Submission | `release/lab4-staging-to-main` | *(Pending)* | Pending Review | *(Pending)* | Backlog |
 
 ---
@@ -147,18 +147,18 @@
 
 ### Issue #8: Completion Review — Audit Against Contract — `feature/lab4-completion-review`
 
-- **PR:** *(Pending PR)*
+- **PR:** [PR #75](https://github.com/maneejames/TokTickIT/pull/75)
 - **Author:** @maneejames
 - **Reviewer:** @JEWKEW
-- **Review Verdict:** Pending Review.
+- **Review Verdict:** Approved by @JEWKEW (2026-11-01T16:09:34Z); merged (2026-11-01T21:56:58Z).
 
 **Yotsapoom commented:**
-> *(Pending review)*
+> Reviewed the Issue 8 completion audit. The E2E coverage verifies the key workflows across Lab 2, Lab 3, and Lab 4, while the API authorization evidence and visual checklist provide clear traceability against the engineering contract. All 9 Playwright tests, 301 server tests, and 104 client tests pass, with clean TypeScript checks across all three packages. The 57 test rows are also documented as passing, with no skipped or disabled tests remaining. This provides strong evidence that the implementation is ready for release preparation. No issues from my side. Approved for merge into lab4-staging!
 
 **I responded:**
-> *(Pending review)*
+> Thanks for the review! Glad the completion audit and test evidence look good. I’ll proceed with the merge into lab4-staging and move on to the release preparation phase.
 
-**Final verified state:** *(Pending — fill after merge)*
+**Final verified state:** PR #75 merged into `lab4-staging` delivering the full completion audit with passing E2E regression across Labs 2, 3, and 4, raw API authorization evidence, visual checklist, and 100% test pass status across all 57 scenarios.
 
 ---
 
@@ -173,6 +173,11 @@
 | #63 | Add Actions Taken functionality to Ticket Detail | `feature/lab4-actions-taken-ui` | [PR #63](https://github.com/JEWKEW/TokTickIT/pull/63) | Approved by @maneejames | 2026-10-07T08:07:36Z | Merged |
 | #66 | feat: Implement ticket status transition logic and update UI components | `feature/lab4-ticket-workflow` | [PR #66](https://github.com/JEWKEW/TokTickIT/pull/66) | Approved by @maneejames | 2026-10-29T19:07:10Z | Merged |
 | #67 | Feature/lab4 requester dashboard | `feature/lab4-requester-dashboard` | [PR #67](https://github.com/JEWKEW/TokTickIT/pull/67) | Approved by @maneejames | 2026-10-30T00:37:59Z | Merged |
+| #68 | Implement Staff Dashboard with metrics and recent actions for IT Staff | `feature/lab4-staff-dashboard` | [PR #68](https://github.com/JEWKEW/TokTickIT/pull/68) | Approved by @maneejames | 2026-10-31T15:09:47Z | Merged |
+| #69 | add performance smoke test for lab4 dashboard | `feature/lab4-regression` | [PR #69](https://github.com/JEWKEW/TokTickIT/pull/69) | Approved by @maneejames | 2026-10-31T16:23:02Z | Merged |
+| #70 | Add accessibility and responsive verification checklist for Lab 4 | `feature/lab4-a11y-responsive` | [PR #70](https://github.com/JEWKEW/TokTickIT/pull/70) | Approved by @maneejames | 2026-10-31T18:18:03Z | Merged |
+| #71 | Refactor code structure for improved readability and maintainability | `feature/lab4-visual-polish` | [PR #71](https://github.com/JEWKEW/TokTickIT/pull/71) | Approved by @maneejames | 2026-11-01T13:28:59Z | Merged |
+| #72 | merge to main | `lab4-staging` | [PR #72](https://github.com/JEWKEW/TokTickIT/pull/72) | Approved by @maneejames | 2026-11-01T15:05:32Z | Merged |
 
 ---
 
@@ -294,3 +299,88 @@
 > Thanks for the detailed review and approval. I really appreciate you taking the time to verify the Requester Dashboard, Ticket scoping, status calculations, navigation, UI behavior, and test coverage. Glad everything looks good and the API and client tests are passing.
 
 **Final verified state:** PR #67 merged into `lab4-staging` in JEWKEW/TokTickIT with Requester Dashboard and tests passing.
+
+---
+
+### Partner PR #68: Staff Dashboard — `feature/lab4-staff-dashboard`
+
+- **PR:** [PR #68](https://github.com/JEWKEW/TokTickIT/pull/68)
+- **Author:** @JEWKEW
+- **Reviewer:** @maneejames
+- **Review Verdict:** Approved by @maneejames (2026-10-31T15:09:47Z); merged (2026-10-31T15:17:28Z).
+
+**I commented:**
+> Issue 8 matches the Lab 4 handout (§8.1) and the approved scope. The staff dashboard API is restricted to IT Staff and Administrator, Requesters are denied, and Administrator-only account totals are handled correctly. The dashboard UI, navigation, and queue drill-downs are in place, with loading, empty, retry, and 403 states covered. API (4), component (3), and browser (3) tests pass, and both builds pass.
+
+**Yotsapoom responded:**
+> Thanks for the detailed review and approval. I really appreciate you taking the time to verify the Issue 8 scope, staff dashboard API permissions, Administrator-only account totals, UI and navigation behavior, state handling, and test coverage. Glad everything looks good and all the tests and builds are passing.
+
+**Final verified state:** PR #68 merged into `lab4-staging` in JEWKEW/TokTickIT with Staff Dashboard metrics and recent actions passing.
+
+---
+
+### Partner PR #69: Performance Smoke Test & Regression — `feature/lab4-regression`
+
+- **PR:** [PR #69](https://github.com/JEWKEW/TokTickIT/pull/69)
+- **Author:** @JEWKEW
+- **Reviewer:** @maneejames
+- **Review Verdict:** Approved by @maneejames (2026-10-31T16:23:02Z); merged (2026-10-31T16:25:21Z).
+
+**I commented:**
+> Reviewed PR #69 (Issue 9, Final Regression and Product Hardening) against the Lab 4 handout. Labs 1–3 behavior is preserved, and the regression coverage spans auth and roles, Requester ownership, Ticket details, attachments, comments, staff queue, internal notes, dashboard drill-downs, and admin user management. Playwright tests now create their own Tickets instead of relying on fixed IDs, and recoverable API failures show safe feedback in the UI. The performance smoke test runs against a disposable database with a 500-Ticket / 2,000-Actions-Taken fixture, and every measured call came in under 30 ms against the 1,000 ms target. Server (301 passed, 1 opt-in skipped), client (156 passed), and Playwright (17 passed) all pass, along with both builds and the health check.
+
+**Yotsapoom responded:**
+> Thanks for the detailed review and approval. I really appreciate you taking the time to verify the Issue 9 regression coverage, self-contained Playwright tests, UI error handling, and the 500-Ticket performance smoke test results. Glad everything looks good and all the server, client, and browser tests, builds, and health checks are passing.
+
+**Final verified state:** PR #69 merged into `lab4-staging` in JEWKEW/TokTickIT with regression suite, self-contained Playwright tests, and performance smoke tests passing.
+
+---
+
+### Partner PR #70: Accessibility & Responsive Verification — `feature/lab4-a11y-responsive`
+
+- **PR:** [PR #70](https://github.com/JEWKEW/TokTickIT/pull/70)
+- **Author:** @JEWKEW
+- **Reviewer:** @maneejames
+- **Review Verdict:** Approved by @maneejames (2026-10-31T18:18:03Z); merged (2026-11-01T00:30:17Z).
+
+**I commented:**
+> The work stays in scope and adds no new product features. Keyboard focus is now visible with a 3px Zen Green outline, and Actions Taken validation messages are tied to their fields with aria-invalid and aria-describedby. Ticket Detail controls have associated labels, and the attachment-removal overlay now has proper dialog semantics, including focus trapping, Escape to close, and focus restored to the Remove button. Internal Notes carry a visible privacy warning that sets them apart from Public Comments. Playwright checks cover dashboards, Actions Taken, and Ticket Detail at 1280, 768, and 375 px, including overflow, clipped or overlapping controls, text status labels, and keyboard focus. Client suite (156 passed), Lab 4 accessibility/responsive E2E (10 passed), Requester Ticket Flow E2E (1 passed), Actions Taken UI (6 passed) and E2E (2 passed), and the client build all pass.
+
+**Yotsapoom responded:**
+> Thanks for the detailed review and approval. I really appreciate you taking the time to verify the keyboard focus styling, ARIA validation bindings, dialog focus trapping, Internal Notes privacy warnings, and the responsive Playwright checks across all three breakpoints. Glad everything looks good and all the client, UI, and E2E test suites and builds are passing.
+
+**Final verified state:** PR #70 merged into `lab4-staging` in JEWKEW/TokTickIT with accessibility enhancements and multi-breakpoint responsive tests passing.
+
+---
+
+### Partner PR #71: Zen Green Visual Polish & Cleanup — `feature/lab4-visual-polish`
+
+- **PR:** [PR #71](https://github.com/JEWKEW/TokTickIT/pull/71)
+- **Author:** @JEWKEW
+- **Reviewer:** @maneejames
+- **Review Verdict:** Approved by @maneejames (2026-11-01T13:28:59Z); merged (2026-11-01T13:54:15Z).
+
+**I commented:**
+> Reviewed Issue 11 (Zen Green Visual Cleanup) against the Lab 4 handout. The work is cleanup only and adds no new product features. Navigation now marks the active destination with aria-current="page" for Requester, IT Staff, and Administrator, and the profile toggle has a descriptive accessible name. Hidden duplicate profile and sign-out controls were removed. The hidden System Diagnostics panel and its unused API helper are gone, the login screen now shows accurate password-reset guidance as text instead of a fake link that triggered a browser alert, and the unused development requester callback was removed. The priority screen-reader label now uses a visually-hidden class rather than display: none, which keeps it available to assistive tech. Required screenshots for the staff dashboard, Requester dashboard, and Actions Taken are in place at desktop, tablet, and mobile sizes under artifacts/lab-04/. Client build (passed), client tests (152 passed), server build (passed), Lab 4 browser suite (10 passed), and Requester Ticket Flow (1 passed) all pass.
+
+**Yotsapoom responded:**
+> Thanks for the detailed review and approval. I really appreciate you taking the time to verify the Issue 11 cleanup scope, navigation ARIA states, removal of duplicate controls and unused helpers, screen-reader label fixes, and the responsive screenshot artifacts. Glad everything looks good and all the client, server, and browser test suites and builds are passing.
+
+**Final verified state:** PR #71 merged into `lab4-staging` in JEWKEW/TokTickIT with visual cleanup, ARIA semantics, and responsive screenshot artifacts passing.
+
+---
+
+### Partner PR #72: Release Merge to Main — `lab4-staging`
+
+- **PR:** [PR #72](https://github.com/JEWKEW/TokTickIT/pull/72)
+- **Author:** @JEWKEW
+- **Reviewer:** @maneejames
+- **Review Verdict:** Approved by @maneejames (2026-11-01T15:05:32Z); merged (2026-11-01T15:06:50Z).
+
+**I commented:**
+> README covers the fresh-clone setup and demo path, .gitignore is updated, the submission PDF has Answer Parts 1–9, and the reviewer record correctly stays pending. Client (156), server (301, 1 opt-in skipped), and Playwright (18) all pass, and both builds pass.
+
+**Yotsapoom responded:**
+> Thanks for the detailed review and approval. I really appreciate you taking the time to verify the README setup instructions and demo path, the updated .gitignore, the submission PDF with Answer Parts 1–9, and the pending reviewer record. Glad everything looks good and all the client, server, and Playwright tests and builds are passing.
+
+**Final verified state:** PR #72 merged into `main` in JEWKEW/TokTickIT delivering the final Lab 4 release.
