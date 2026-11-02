@@ -180,7 +180,9 @@ describe("StaffTicketDetail Component UI Tests (DETAIL-UI-01)", () => {
     it("renders editable IT Priority control and allows updating priority", async () => {
       vi.mocked(api.updateTicketPriority).mockResolvedValue({
         id: 101,
+        ticketNumber: "TICK-2026-0001",
         itPriority: "URGENT",
+        requestedPriority: "HIGH",
       });
 
       render(<StaffTicketDetail ticketId={101} currentUser={currentUser} />);
@@ -332,6 +334,7 @@ describe("StaffTicketDetail Component UI Tests (DETAIL-UI-01)", () => {
     it("transitions ticket status when a transition button is clicked", async () => {
       vi.mocked(api.updateTicketStatus).mockResolvedValue({
         id: 101,
+        ticketNumber: "TICK-2026-0001",
         status: "OPEN",
         currentStatus: "OPEN",
       });

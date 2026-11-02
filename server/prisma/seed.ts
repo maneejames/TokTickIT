@@ -383,6 +383,48 @@ export async function seed() {
         isRequesterResolved: false,
         createdAt: new Date("2026-09-07T09:00:00.000Z"),
       },
+      {
+        ticketNumber: "TICK-20260906-0014",
+        requesterId: somchai.id,
+        ownerId: witchai.id,
+        categoryId: hardwareCat.id,
+        relatedSystemId: laptopSys.id,
+        summary: "Display flickering reappeared after sleep mode",
+        description: "Laptop screen started flickering again when resuming from sleep mode.",
+        requestedPriority: "HIGH" as const,
+        itPriority: "URGENT" as const,
+        currentStatus: "REOPENED" as const,
+        isRequesterResolved: false,
+        createdAt: new Date("2026-09-07T10:00:00.000Z"),
+      },
+      {
+        ticketNumber: "TICK-20260906-0015",
+        requesterId: somchai.id,
+        ownerId: null,
+        categoryId: softwareCat.id,
+        relatedSystemId: emailSys.id,
+        summary: "Duplicate ticket for email sync issue",
+        description: "Created in error, duplicate of previous request.",
+        requestedPriority: "LOW" as const,
+        itPriority: "LOW" as const,
+        currentStatus: "CANCELLED" as const,
+        isRequesterResolved: false,
+        createdAt: new Date("2026-09-07T11:00:00.000Z"),
+      },
+      {
+        ticketNumber: "TICK-20260906-0016",
+        requesterId: suda.id,
+        ownerId: kamon.id,
+        categoryId: networkCat.id,
+        relatedSystemId: vpnSys.id,
+        summary: "Faculty VPN disconnection during off-campus grading",
+        description: "VPN session drops every 5 minutes during remote grade portal access.",
+        requestedPriority: "HIGH" as const,
+        itPriority: "URGENT" as const,
+        currentStatus: "IN_PROGRESS" as const,
+        isRequesterResolved: false,
+        createdAt: new Date("2026-09-07T13:00:00.000Z"),
+      },
     ];
 
     for (const t of realisticTickets) {
@@ -473,6 +515,159 @@ export async function seed() {
           });
         }
       }
+    }
+
+    // 5. Seed Actions Taken (idempotent upsert via ticketId_clientRequestId)
+    const t1 = await prisma.ticket.findUnique({ where: { ticketNumber: "TICK-20260906-0001" } });
+    if (t1) {
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t1.id, clientRequestId: "seed-act-0001-1" } },
+        update: {
+          description: "Diagnosed hardware malfunction and replaced faulty battery",
+          result: "Verified battery holds charge and charges normally",
+          status: "COMPLETED",
+        },
+        create: {
+          ticketId: t1.id,
+          performedById: witchai.id,
+          assigneeId: witchai.id,
+          status: "COMPLETED",
+          actionDateTime: new Date("2026-09-06T09:30:00.000Z"),
+          completedAt: new Date("2026-09-06T10:00:00.000Z"),
+          description: "Diagnosed hardware malfunction and replaced faulty battery",
+          result: "Verified battery holds charge and charges normally",
+          followUpRequired: true,
+          followUpNote: "Check battery health cycle in one week",
+          attachmentNotes: "Battery diagnostic screenshot attached",
+          version: 1,
+          clientRequestId: "seed-act-0001-1",
+        },
+      });
+
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t1.id, clientRequestId: "seed-act-0001-2" } },
+        update: {
+          description: "Schedule system stress test under battery load",
+          result: "Awaiting user laptop availability for 2-hour cycle test",
+          status: "PLANNED",
+        },
+        create: {
+          ticketId: t1.id,
+          performedById: kamon.id,
+          assigneeId: witchai.id,
+          status: "PLANNED",
+          actionDateTime: new Date("2026-09-06T11:00:00.000Z"),
+          completedAt: null,
+          description: "Schedule system stress test under battery load",
+          result: "Awaiting user laptop availability for 2-hour cycle test",
+          followUpRequired: false,
+          attachmentNotes: null,
+          version: 0,
+          clientRequestId: "seed-act-0001-2",
+        },
+      });
+
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t1.id, clientRequestId: "seed-act-0001-3" } },
+        update: {
+          description: "Attempt software firmware recalibration",
+          result: "Cancelled because hardware cell damage was detected directly",
+          status: "CANCELLED",
+        },
+        create: {
+          ticketId: t1.id,
+          performedById: witchai.id,
+          assigneeId: null,
+          status: "CANCELLED",
+          actionDateTime: new Date("2026-09-06T09:00:00.000Z"),
+          completedAt: null,
+          description: "Attempt software firmware recalibration",
+          result: "Cancelled because hardware cell damage was detected directly",
+          followUpRequired: false,
+          attachmentNotes: null,
+          version: 1,
+          clientRequestId: "seed-act-0001-3",
+        },
+      });
+    }
+
+    const t2 = await prisma.ticket.findUnique({ where: { ticketNumber: "TICK-20260906-0002" } });
+    if (t2) {
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t2.id, clientRequestId: "seed-act-0002-1" } },
+        update: {
+          description: "Inspect AP-CB2-301 access point channel interference",
+          result: "Radio logs collected, investigating channel congestion",
+          status: "PLANNED",
+        },
+        create: {
+          ticketId: t2.id,
+          performedById: kamon.id,
+          assigneeId: kamon.id,
+          status: "PLANNED",
+          actionDateTime: new Date("2026-09-06T10:30:00.000Z"),
+          completedAt: null,
+          description: "Inspect AP-CB2-301 access point channel interference",
+          result: "Radio logs collected, investigating channel congestion",
+          followUpRequired: true,
+          followUpNote: "Coordinate with network admin to adjust transmit power",
+          attachmentNotes: null,
+          version: 0,
+          clientRequestId: "seed-act-0002-1",
+        },
+      });
+    }
+
+    const t4 = await prisma.ticket.findUnique({ where: { ticketNumber: "TICK-20260906-0004" } });
+    if (t4) {
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t4.id, clientRequestId: "seed-act-0004-1" } },
+        update: {
+          description: "Installed Docker Desktop client v4.30",
+          result: "Docker service installed, awaiting requester confirmation",
+          status: "COMPLETED",
+        },
+        create: {
+          ticketId: t4.id,
+          performedById: witchai.id,
+          assigneeId: witchai.id,
+          status: "COMPLETED",
+          actionDateTime: new Date("2026-09-06T11:45:00.000Z"),
+          completedAt: new Date("2026-09-06T12:00:00.000Z"),
+          description: "Installed Docker Desktop client v4.30",
+          result: "Docker service installed, awaiting requester confirmation",
+          followUpRequired: false,
+          attachmentNotes: null,
+          version: 0,
+          clientRequestId: "seed-act-0004-1",
+        },
+      });
+    }
+
+    const t5 = await prisma.ticket.findUnique({ where: { ticketNumber: "TICK-20260906-0005" } });
+    if (t5) {
+      await prisma.actionTaken.upsert({
+        where: { ticketId_clientRequestId: { ticketId: t5.id, clientRequestId: "seed-act-0005-1" } },
+        update: {
+          description: "Cleared paper obstruction in roller pickup mechanism",
+          result: "Printer test page printed successfully",
+          status: "COMPLETED",
+        },
+        create: {
+          ticketId: t5.id,
+          performedById: witchai.id,
+          assigneeId: witchai.id,
+          status: "COMPLETED",
+          actionDateTime: new Date("2026-09-06T13:50:00.000Z"),
+          completedAt: new Date("2026-09-06T14:00:00.000Z"),
+          description: "Cleared paper obstruction in roller pickup mechanism",
+          result: "Printer test page printed successfully",
+          followUpRequired: false,
+          attachmentNotes: null,
+          version: 0,
+          clientRequestId: "seed-act-0005-1",
+        },
+      });
     }
   }
 

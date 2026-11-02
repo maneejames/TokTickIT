@@ -34,6 +34,12 @@ enum TicketStatus {
   CANCELLED
 }
 
+enum ActionStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id                 Int             @id @default(autoincrement())
   name               String
@@ -48,6 +54,8 @@ model User {
   ownedTickets       Ticket[]        @relation("TicketOwner")
   publicComments     PublicComment[]
   internalNotes      InternalNote[]
+  performedActions   ActionTaken[]   @relation("ActionPerformedBy")
+  assignedActions    ActionTaken[]   @relation("ActionAssignee")
 
   @@map("users")
 }
@@ -86,6 +94,7 @@ model Ticket {
   itPriority          Priority        @default(MEDIUM)
   currentStatus       TicketStatus    @default(NEW)
   isRequesterResolved Boolean         @default(false)
+  version             Int             @default(0)
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
@@ -96,11 +105,41 @@ model Ticket {
   attachments    Attachment[]
   publicComments PublicComment[]
   internalNotes  InternalNote[]
+  actionsTaken   ActionTaken[]
 
   @@index([requesterId, createdAt(sort: Desc)])
   @@index([ownerId])
   @@index([currentStatus])
   @@map("tickets")
+}
+
+model ActionTaken {
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  performedById    Int
+  assigneeId       Int?
+  status           ActionStatus @default(PLANNED)
+  actionDateTime   DateTime     @default(now())
+  completedAt      DateTime?
+  description      String       @db.VarChar(2000)
+  result           String       @db.VarChar(1000)
+  followUpRequired Boolean      @default(false)
+  followUpNote     String?      @db.VarChar(1000)
+  attachmentNotes  String?      @db.VarChar(500)
+  version          Int          @default(0)
+  clientRequestId  String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy User   @relation("ActionPerformedBy", fields: [performedById], references: [id])
+  assignee    User?  @relation("ActionAssignee", fields: [assigneeId], references: [id])
+
+  @@unique([ticketId, clientRequestId])
+  @@index([ticketId])
+  @@index([assigneeId])
+  @@index([performedById])
+  @@map("actions_taken")
 }
 
 model PublicComment {

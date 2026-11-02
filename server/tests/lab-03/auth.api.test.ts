@@ -6,6 +6,11 @@ import { getPrisma } from "../../src/prisma.js";
 describe("Lab 3 - Auth API Integration Tests", () => {
   const prisma = getPrisma();
 
+  const getCookies = (res: { headers: Record<string, any> }): string[] => {
+    const sc = res.headers["set-cookie"];
+    return Array.isArray(sc) ? sc : typeof sc === "string" ? [sc] : [];
+  };
+
   // Track all ephemeral user IDs created during tests so they are
   // always cleaned up — even if a test assertion fails mid-run.
   const ephemeralUserIds: number[] = [];
@@ -107,7 +112,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
         password: "Password123!",
       });
 
-    const cookie = loginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(loginRes);
 
     const meRes = await request(app)
       .get("/api/auth/me")
@@ -143,7 +148,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
         password: "Password123!",
       });
 
-    const cookie = loginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(loginRes);
 
     const logoutRes = await request(app)
       .post("/api/auth/logout")
@@ -187,7 +192,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
       });
 
     expect(validLoginRes.status).toBe(200);
-    const cookie = validLoginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(validLoginRes);
 
     // Verify session works
     const meBefore = await request(app)
@@ -220,7 +225,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
 
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.user.mustChangePassword).toBe(true);
-    const cookie = loginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(loginRes);
 
     // Normal operational endpoint like POST /api/tickets should be blocked with 403
     const blockedRes = await request(app)
@@ -246,7 +251,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
         password: "Password123!",
       });
 
-    const cookie = loginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(loginRes);
 
     const res = await request(app)
       .post("/api/auth/change-password")
@@ -286,7 +291,7 @@ describe("Lab 3 - Auth API Integration Tests", () => {
         password: "Password123!",
       });
 
-    const cookie = loginRes.headers["set-cookie"] || [];
+    const cookie = getCookies(loginRes);
 
     const changeRes = await request(app)
       .post("/api/auth/change-password")

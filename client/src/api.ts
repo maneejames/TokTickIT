@@ -327,6 +327,7 @@ export interface TicketDetail {
   itPriority?: StaffPriority;
   currentStatus: string;
   isRequesterResolved?: boolean;
+  version?: number;
   ownerId?: number | null;
   owner?: { id: number; name: string; email?: string } | null;
   createdAt: string;
@@ -713,6 +714,7 @@ export interface QueueFilterParams {
   priority?: string;
   categoryId?: number;
   ownerId?: string | number;
+  requesterResolved?: boolean;
   sortBy?: "createdAt" | "updatedAt" | "itPriority" | "status" | "ticketNumber";
   sortOrder?: "asc" | "desc";
 }
@@ -730,6 +732,9 @@ export async function getStaffTickets(params: QueueFilterParams = {}): Promise<S
   }
   if (params.ownerId !== undefined && params.ownerId !== "ALL" && params.ownerId !== "") {
     query.set("ownerId", String(params.ownerId));
+  }
+  if (params.requesterResolved !== undefined) {
+    query.set("requesterResolved", String(params.requesterResolved));
   }
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.sortOrder) query.set("sortOrder", params.sortOrder);
@@ -845,8 +850,9 @@ export async function postInternalNote(
 
 export async function updateTicketOwner(
   ticketId: number,
-  ownerId?: number
-): Promise<{ id: number; ticketNumber: string; ownerId: number; owner: { id: number; name: string } | null }> {
+  ownerId?: number,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; ownerId: number; owner: { id: number; name: string } | null; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/owner`, {
@@ -855,7 +861,10 @@ export async function updateTicketOwner(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify(ownerId !== undefined ? { ownerId } : {}),
+      body: JSON.stringify({
+        ...(ownerId !== undefined ? { ownerId } : {}),
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -863,15 +872,19 @@ export async function updateTicketOwner(
 
   if (!res.ok) {
     let errorMsg = `Failed to update ticket owner (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();
@@ -879,8 +892,9 @@ export async function updateTicketOwner(
 
 export async function updateTicketPriority(
   ticketId: number,
-  itPriority: StaffPriority
-): Promise<{ id: number; ticketNumber: string; itPriority: StaffPriority; requestedPriority: string }> {
+  itPriority: StaffPriority,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; itPriority: StaffPriority; requestedPriority: string; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
@@ -889,7 +903,10 @@ export async function updateTicketPriority(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ itPriority }),
+      body: JSON.stringify({
+        itPriority,
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -897,15 +914,19 @@ export async function updateTicketPriority(
 
   if (!res.ok) {
     let errorMsg = `Failed to update priority (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();
@@ -913,8 +934,9 @@ export async function updateTicketPriority(
 
 export async function updateTicketStatus(
   ticketId: number,
-  status: StaffTicketStatus
-): Promise<{ id: number; ticketNumber: string; status: StaffTicketStatus; currentStatus: StaffTicketStatus }> {
+  status: StaffTicketStatus,
+  expectedVersion?: number
+): Promise<{ id: number; ticketNumber: string; status: StaffTicketStatus; currentStatus: StaffTicketStatus; version?: number }> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
@@ -923,7 +945,10 @@ export async function updateTicketStatus(
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({
+        status,
+        ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+      }),
     });
   } catch {
     throw new Error("Unable to connect to TokTickIT API");
@@ -931,15 +956,19 @@ export async function updateTicketStatus(
 
   if (!res.ok) {
     let errorMsg = `Failed to update status (HTTP ${res.status})`;
+    let errorData: any = null;
     try {
-      const errorData = await res.json();
+      errorData = await res.json();
       if (errorData?.error?.message) {
         errorMsg = errorData.error.message;
       }
     } catch {
       // fallback
     }
-    throw new Error(errorMsg);
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
 
   return res.json();
@@ -1120,3 +1149,389 @@ export async function resetAdminUserPassword(
 
 
 
+
+
+// Lab 4: Actions Taken Contracts
+export type ActionStatus = "PLANNED" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  description: string;
+  performedById: number;
+  performedBy: {
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+  actionDate?: string;
+  actionDateTime?: string;
+  result: string;
+  status: ActionStatus;
+  completedAt: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  assignedToId?: number | null;
+  assigneeId?: number | null;
+  assignedTo?: {
+    id: number;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    role?: string;
+  } | null;
+  assignee?: {
+    id: number;
+    name: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+  } | null;
+  attachmentNotes: string | null;
+  clientRequestId: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenData {
+  description: string;
+  result: string;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  assignedToId?: number | null;
+  assigneeId?: number | null;
+  attachmentNotes?: string | null;
+  actionDate?: string;
+  actionDateTime?: string;
+}
+
+export async function getTicketActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to fetch actions (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function postTicketAction(
+  ticketId: number,
+  data: CreateActionTakenData,
+  idempotencyKey: string
+): Promise<ActionTaken> {
+  let res: Response;
+  const payload = {
+    ...data,
+    assigneeId: data.assigneeId !== undefined ? data.assigneeId : data.assignedToId,
+    assignedToId: data.assignedToId !== undefined ? data.assignedToId : data.assigneeId,
+  };
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to create action (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function reassignTicketAction(
+  ticketId: number,
+  actionId: number,
+  data: { assignedToId?: number | null; assigneeId?: number | null; expectedVersion: number }
+): Promise<ActionTaken> {
+  let res: Response;
+  const payload = {
+    ...data,
+    assigneeId: data.assigneeId !== undefined ? data.assigneeId : data.assignedToId,
+    assignedToId: data.assignedToId !== undefined ? data.assignedToId : data.assigneeId,
+  };
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}/assign`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to reassign action (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function updateTicketActionStatus(
+  ticketId: number,
+  actionId: number,
+  data: { status: "COMPLETED" | "CANCELLED"; expectedVersion: number }
+): Promise<ActionTaken> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions/${actionId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to update action status (HTTP ${res.status})`;
+    let errorData: any = null;
+    try {
+      errorData = await res.json();
+      if (errorData?.error?.message) {
+        errorMsg = errorData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Lab 4 Issue 6 — Role Dashboards API Types & Functions
+// ---------------------------------------------------------------------------
+
+export interface DashboardMetricWithDrillDown<T = Record<string, string | number | boolean>> {
+  count: number;
+  drillDown: T;
+}
+
+export interface RequesterDashboardTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: StaffTicketStatus | string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardResponse {
+  generatedAt: string;
+  metrics: {
+    activeTickets: DashboardMetricWithDrillDown<{ status: string }>;
+    waitingForRequester: DashboardMetricWithDrillDown<{ status: string }>;
+    resolved: DashboardMetricWithDrillDown<{ status: string }>;
+    closed: DashboardMetricWithDrillDown<{ status: string }>;
+  };
+  recentlyUpdated: RequesterDashboardTicketItem[];
+  recentlyResolved: RequesterDashboardTicketItem[];
+}
+
+export interface StaffDashboardUrgentTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  itPriority: StaffPriority;
+  status: StaffTicketStatus | string;
+  ownerName: string | null;
+  createdAt: string;
+}
+
+export interface StaffDashboardRecentTicketItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: StaffTicketStatus | string;
+  updatedAt: string;
+}
+
+export interface StaffDashboardRecentActionItem {
+  id: number;
+  ticketId: number;
+  ticketNumber: string;
+  descriptionPreview: string;
+  followUpRequired: boolean;
+  actionDateTime: string;
+}
+
+export interface StaffDashboardResponse {
+  generatedAt: string;
+  metrics: {
+    byStatus: Record<
+      StaffTicketStatus,
+      DashboardMetricWithDrillDown<{ status: string }>
+    >;
+    unassigned: DashboardMetricWithDrillDown<{
+      ownerId: string;
+      status: string;
+    }>;
+    myOwned: DashboardMetricWithDrillDown<{
+      ownerId: number;
+      status: string;
+    }>;
+    byItPriority: Record<
+      StaffPriority,
+      DashboardMetricWithDrillDown<{ priority: string; status: string }>
+    >;
+    requesterResolvedPending: DashboardMetricWithDrillDown<{
+      status: string;
+      requesterResolved: boolean;
+    }>;
+    myFollowUps: {
+      count: number;
+    };
+  };
+  urgentTickets: StaffDashboardUrgentTicketItem[];
+  recentlyUpdated: StaffDashboardRecentTicketItem[];
+  myRecentActions: StaffDashboardRecentActionItem[];
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboardResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/dashboard/requester`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (res.status === 401) {
+    const err: any = new Error("UNAUTHORIZED");
+    err.status = 401;
+    throw err;
+  }
+
+  if (res.status === 403) {
+    const err: any = new Error("FORBIDDEN");
+    err.status = 403;
+    throw err;
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to load dashboard (HTTP ${res.status})`;
+    try {
+      const errData = await res.json();
+      if (errData?.error?.message) {
+        errorMsg = errData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboardResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/dashboard/staff`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API");
+  }
+
+  if (res.status === 401) {
+    const err: any = new Error("UNAUTHORIZED");
+    err.status = 401;
+    throw err;
+  }
+
+  if (res.status === 403) {
+    const err: any = new Error("FORBIDDEN");
+    err.status = 403;
+    throw err;
+  }
+
+  if (!res.ok) {
+    let errorMsg = `Failed to load dashboard (HTTP ${res.status})`;
+    try {
+      const errData = await res.json();
+      if (errData?.error?.message) {
+        errorMsg = errData.error.message;
+      }
+    } catch {
+      // fallback
+    }
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}

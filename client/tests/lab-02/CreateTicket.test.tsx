@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CreateTicket } from "../../src/components/CreateTicket.js";
 import * as api from "../../src/api.js";
-import { RequesterContextType } from "../../src/context/RequesterContext.js";
 
 // Mock Requester Context
 const mockRequester: api.User = {

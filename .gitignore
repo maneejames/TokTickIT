@@ -14,3 +14,17 @@ server/prisma/*.db
 .DS_Store
 # uploads
 server/uploads/
+
+# lab-04
+artifacts/lab-04/logs/
+
+# editor / workspace
+*.code-workspace
+
+# testing & reports
+test-results/
+playwright-report/
+
+.vite/
+
+.vite/

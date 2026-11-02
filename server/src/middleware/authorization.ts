@@ -74,7 +74,7 @@ export function requireRole(...allowedRoles: Role[]) {
  * Returns 404 (not 403) if ticket doesn't exist or is not owned by the requester,
  * per BR-08 and specification §6 to prevent resource enumeration.
  * 
- * IT_STAFF can access any ticket (bypasses ownership check).
+ * IT_STAFF and ADMINISTRATOR (per Decision D-3) can access any ticket (bypasses ownership check).
  * Must be chained after requireAuth().
  * 
  * @param ticketIdParam - The name of the route parameter containing the ticket ID (default: "id")
@@ -90,7 +90,7 @@ export function requireTicketOwnership(ticketIdParam = "id", notFoundMessage = "
       });
     }
 
-    // IT_STAFF can access any ticket
+    // IT_STAFF can access any ticket (Administrator restricted on Requester endpoints like attachments)
     if (req.user.role === "IT_STAFF") {
       return next();
     }
@@ -137,7 +137,7 @@ export function requireTicketOwnership(ticketIdParam = "id", notFoundMessage = "
       }
     }
 
-    // ADMINISTRATOR or other roles: no access to ticket operations
+    // Other roles: no access to ticket operations
     return res.status(403).json({
       error: {
         code: "FORBIDDEN",
@@ -156,7 +156,7 @@ export function requireAuthAndRole(allowedRoles: Role[], bypassPasswordCheck = f
 }
 
 /**
- * Combined middleware: Require authentication + ticket ownership (Requester) or IT_STAFF access.
+ * Combined middleware: Require authentication + ticket ownership (Requester) or IT_STAFF / Admin access.
  * Convenience function that chains requireAuth and requireTicketOwnership.
  */
 export function requireAuthAndTicketAccess(ticketIdParam = "id") {
@@ -181,11 +181,12 @@ export function requireRequesterOnly() {
 }
 
 /**
- * Middleware specifically for IT Staff-only operations (queue, ticket management, internal notes).
- * Returns 403 for REQUESTER and ADMINISTRATOR.
+ * Middleware specifically for IT Staff operations (queue, ticket management, internal notes).
+ * In Lab 4 (Decision D-3 / BR-17), ADMINISTRATOR performs IT Staff operations.
+ * Returns 403 for REQUESTER.
  */
 export function requireITStaffOnly() {
-  return [requireAuth(), requireRole("IT_STAFF")];
+  return [requireAuth(), requireRole("IT_STAFF", "ADMINISTRATOR")];
 }
 
 /**
@@ -198,7 +199,7 @@ export function requireAdminOnly() {
 
 /**
  * Middleware for endpoints accessible to multiple specific roles.
- * Example: Public comments accessible to REQUESTER (own) and IT_STAFF (any).
+ * Example: Public comments accessible to REQUESTER (own), IT_STAFF (any), and ADMINISTRATOR (any).
  */
 export function requireAnyRole(...allowedRoles: Role[]) {
   return [requireAuth(), requireRole(...allowedRoles)];

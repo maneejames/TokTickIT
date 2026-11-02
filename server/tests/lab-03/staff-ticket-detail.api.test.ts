@@ -130,7 +130,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       it("rejects unauthenticated request with 401 Unauthorized", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/owner`)
-          .send({ ownerId: staffWitchaiId });
+          .send({ ownerId: staffWitchaiId, expectedVersion: 0 });
         expect(res.status).toBe(401);
         expect(res.body.error?.code).toBe("UNAUTHORIZED");
       });
@@ -139,18 +139,17 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/owner`)
           .set("Cookie", `toktickit_session=${requesterToken}`)
-          .send({ ownerId: staffWitchaiId });
+          .send({ ownerId: staffWitchaiId, expectedVersion: 0 });
         expect(res.status).toBe(403);
         expect(res.body.error?.code).toBe("FORBIDDEN");
       });
 
-      it("rejects Administrator with 403 Forbidden", async () => {
+      it("allows Administrator with 200 OK per Decision D-3", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/owner`)
           .set("Cookie", `toktickit_session=${adminToken}`)
-          .send({ ownerId: staffWitchaiId });
-        expect(res.status).toBe(403);
-        expect(res.body.error?.code).toBe("FORBIDDEN");
+          .send({ ownerId: staffWitchaiId, expectedVersion: 0 });
+        expect(res.status).toBe(200);
       });
     });
 
@@ -158,7 +157,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       it("rejects unauthenticated request with 401 Unauthorized", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/priority`)
-          .send({ itPriority: "HIGH" });
+          .send({ itPriority: "HIGH", expectedVersion: 1 });
         expect(res.status).toBe(401);
         expect(res.body.error?.code).toBe("UNAUTHORIZED");
       });
@@ -167,18 +166,17 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/priority`)
           .set("Cookie", `toktickit_session=${requesterToken}`)
-          .send({ itPriority: "HIGH" });
+          .send({ itPriority: "HIGH", expectedVersion: 1 });
         expect(res.status).toBe(403);
         expect(res.body.error?.code).toBe("FORBIDDEN");
       });
 
-      it("rejects Administrator with 403 Forbidden", async () => {
+      it("allows Administrator with 200 OK per Decision D-3", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/priority`)
           .set("Cookie", `toktickit_session=${adminToken}`)
-          .send({ itPriority: "HIGH" });
-        expect(res.status).toBe(403);
-        expect(res.body.error?.code).toBe("FORBIDDEN");
+          .send({ itPriority: "HIGH", expectedVersion: 1 });
+        expect(res.status).toBe(200);
       });
     });
 
@@ -186,7 +184,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       it("rejects unauthenticated request with 401 Unauthorized", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/status`)
-          .send({ status: "OPEN" });
+          .send({ status: "OPEN", expectedVersion: 0 });
         expect(res.status).toBe(401);
         expect(res.body.error?.code).toBe("UNAUTHORIZED");
       });
@@ -195,18 +193,17 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/status`)
           .set("Cookie", `toktickit_session=${requesterToken}`)
-          .send({ status: "OPEN" });
+          .send({ status: "OPEN", expectedVersion: 0 });
         expect(res.status).toBe(403);
         expect(res.body.error?.code).toBe("FORBIDDEN");
       });
 
-      it("rejects Administrator with 403 Forbidden", async () => {
+      it("allows Administrator with 200 OK per Decision D-3", async () => {
         const res = await request(app)
           .patch(`/api/staff/tickets/${testTicketId}/status`)
           .set("Cookie", `toktickit_session=${adminToken}`)
-          .send({ status: "OPEN" });
-        expect(res.status).toBe(403);
-        expect(res.body.error?.code).toBe("FORBIDDEN");
+          .send({ status: "OPEN", expectedVersion: 2 });
+        expect(res.status).toBe(200);
       });
     });
   });
@@ -221,7 +218,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({});
+        .send({ expectedVersion: ticket.version });
 
       expect(res.status).toBe(200);
       expect(res.body.ownerId).toBe(staffWitchaiId);
@@ -237,7 +234,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: staffWitchaiId });
+        .send({ ownerId: staffWitchaiId, expectedVersion: 0 });
 
       expect(res.status).toBe(200);
       expect(res.body.ownerId).toBe(staffWitchaiId);
@@ -258,7 +255,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: staffKamonId });
+        .send({ ownerId: staffKamonId, expectedVersion: 0 });
 
       expect(res.status).toBe(200);
       expect(res.body.ownerId).toBe(staffKamonId);
@@ -274,7 +271,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: adminId });
+        .send({ ownerId: adminId, expectedVersion: ticket.version });
 
       expect(res.status).toBe(200);
       expect(res.body.ownerId).toBe(adminId);
@@ -290,7 +287,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: inactiveStaffId });
+        .send({ ownerId: inactiveStaffId, expectedVersion: ticket.version });
 
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBeDefined();
@@ -305,7 +302,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: requesterId });
+        .send({ ownerId: requesterId, expectedVersion: ticket.version });
 
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBeDefined();
@@ -320,7 +317,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/owner`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: 999999 });
+        .send({ ownerId: 999999, expectedVersion: ticket.version });
 
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBeDefined();
@@ -330,7 +327,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch("/api/staff/tickets/999999/owner")
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ ownerId: staffKamonId });
+        .send({ ownerId: staffKamonId, expectedVersion: 0 });
 
       expect(res.status).toBe(404);
       expect(res.body.error?.code).toBe("NOT_FOUND");
@@ -350,7 +347,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch(`/api/staff/tickets/${ticket.id}/priority`)
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ itPriority: "URGENT" });
+        .send({ itPriority: "URGENT", expectedVersion: ticket.version });
 
       expect(res.status).toBe(200);
       expect(res.body.itPriority).toBe("URGENT");
@@ -367,14 +364,16 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         itPriority: "LOW",
       });
 
+      let currentVersion = ticket.version;
       for (const p of ["LOW", "MEDIUM", "HIGH", "URGENT"] as const) {
         const res = await request(app)
           .patch(`/api/staff/tickets/${ticket.id}/priority`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ itPriority: p });
+          .send({ itPriority: p, expectedVersion: currentVersion });
 
         expect(res.status).toBe(200);
         expect(res.body.itPriority).toBe(p);
+        currentVersion = res.body.version;
       }
     });
 
@@ -400,7 +399,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
       const res = await request(app)
         .patch("/api/staff/tickets/999999/priority")
         .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-        .send({ itPriority: "HIGH" });
+        .send({ itPriority: "HIGH", expectedVersion: 1 });
 
       expect(res.status).toBe(404);
       expect(res.body.error?.code).toBe("NOT_FOUND");
@@ -427,7 +426,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "OPEN" });
+          .send({ status: "OPEN", expectedVersion: 0 });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("OPEN");
       });
@@ -437,7 +436,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "CANCELLED" });
+          .send({ status: "CANCELLED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("CANCELLED");
       });
@@ -448,7 +447,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -461,7 +460,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "IN_PROGRESS" });
+          .send({ status: "IN_PROGRESS", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("IN_PROGRESS");
       });
@@ -471,7 +470,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "CANCELLED" });
+          .send({ status: "CANCELLED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("CANCELLED");
       });
@@ -482,7 +481,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -495,7 +494,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "WAITING_FOR_REQUESTER" });
+          .send({ status: "WAITING_FOR_REQUESTER", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("WAITING_FOR_REQUESTER");
       });
@@ -505,7 +504,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "RESOLVED" });
+          .send({ status: "RESOLVED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("RESOLVED");
       });
@@ -515,7 +514,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "CANCELLED" });
+          .send({ status: "CANCELLED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("CANCELLED");
       });
@@ -526,7 +525,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -539,7 +538,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "IN_PROGRESS" });
+          .send({ status: "IN_PROGRESS", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("IN_PROGRESS");
       });
@@ -549,7 +548,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "RESOLVED" });
+          .send({ status: "RESOLVED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("RESOLVED");
       });
@@ -559,7 +558,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "CANCELLED" });
+          .send({ status: "CANCELLED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("CANCELLED");
       });
@@ -570,7 +569,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -583,7 +582,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "CLOSED" });
+          .send({ status: "CLOSED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("CLOSED");
       });
@@ -593,7 +592,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "REOPENED" });
+          .send({ status: "REOPENED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("REOPENED");
       });
@@ -604,7 +603,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -617,7 +616,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "REOPENED" });
+          .send({ status: "REOPENED", expectedVersion: t.version });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("REOPENED");
       });
@@ -628,7 +627,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -642,7 +641,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -656,7 +655,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
           const res = await request(app)
             .patch(`/api/staff/tickets/${t.id}/status`)
             .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-            .send({ status: target });
+            .send({ status: target, expectedVersion: t.version });
           expect(res.status).toBe(400);
           expect(res.body.error?.code).toBeDefined();
         }
@@ -669,7 +668,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch(`/api/staff/tickets/${t.id}/status`)
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "NON_EXISTENT_STATUS" });
+          .send({ status: "NON_EXISTENT_STATUS", expectedVersion: t.version });
         expect(res.status).toBe(400);
         expect(res.body.error?.code).toBeDefined();
       });
@@ -678,7 +677,7 @@ describe("Lab 3 - IT Staff Ticket Detail Operations API Tests (DETAIL-API-01, DE
         const res = await request(app)
           .patch("/api/staff/tickets/999999/status")
           .set("Cookie", `toktickit_session=${staffWitchaiToken}`)
-          .send({ status: "OPEN" });
+          .send({ status: "OPEN", expectedVersion: 0 });
         expect(res.status).toBe(404);
         expect(res.body.error?.code).toBe("NOT_FOUND");
       });
